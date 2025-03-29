@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de bord - Polyglot</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #3f51b5;
+            --primary-light: #7986cb;
+            --secondary-color: #ff4081;
+            --text-color: #333;
+            --bg-color: #f8f9fa;
+        }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+        
+        .dashboard-header {
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+        }
+        
+        .dashboard-card {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            height: 100%;
+        }
+        
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+        }
+        
+        .card-header {
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+            padding: 1rem;
+        }
+        
+        .access-tag {
+            display: inline-block;
+            background-color: rgba(63, 81, 181, 0.1);
+            color: var(--primary-color);
+            border-radius: 20px;
+            padding: 0.3rem 0.8rem;
+            margin: 0.2rem;
+            font-size: 0.85rem;
+        }
+        
+        .btn-logout {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            transition: all 0.3s;
+        }
+        
+        .btn-logout:hover {
+            background-color: #c82333;
+            color: white;
+            transform: translateY(-2px);
+        }
+        
+        .btn-home {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            transition: all 0.3s;
+        }
+        
+        .btn-home:hover {
+            background-color: #303f9f;
+            color: white;
+            transform: translateY(-2px);
+        }
+        
+        .section-title {
+            position: relative;
+            margin-bottom: 2rem;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -0.5rem;
+            left: 0;
+            width: 50px;
+            height: 3px;
+            background-color: var(--secondary-color);
+        }
+        
+        .progress-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .progress {
+            height: 10px;
+            border-radius: 5px;
+            margin-bottom: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="dashboard-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-2">Bienvenue, <%= session.user %>!</h1>
+                    <p class="mb-0 text-muted">Votre tableau de bord d'apprentissage Polyglot</p>
+                </div>
+                <div class="col-md-4 d-flex justify-content-md-end mt-3 mt-md-0">
+                    <a href="/" class="btn btn-home me-2">
+                        <i class="fas fa-home me-2"></i>Accueil
+                    </a>
+                    <a href="/logout" class="btn btn-logout">
+                        <i class="fas fa-sign-out-alt me-2"></i>Déconnexion
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h4 class="mb-0"><i class="fas fa-user-check me-2"></i>Droits d'accès</h4>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="section-title">Langues accessibles</h5>
+                        <div class="access-list mb-4">
+                            <% user.access.languages.forEach(language => { %>
+                                <span class="access-tag"><i class="fas fa-language me-1"></i><%= language %></span>
+                            <% }); %>
+                        </div>
+                        <h5 class="section-title">Modules accessibles</h5>
+                        <div class="access-list">
+                            <% user.access.modules.forEach(module => { %>
+                                <span class="access-tag"><i class="fas fa-puzzle-piece me-1"></i><%= module %></span>
+                            <% }); %>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6 mb-4">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h4 class="mb-0"><i class="fas fa-chart-line me-2"></i>Progression</h4>
+                    </div>
+                    <div class="card-body">
+                        <% if (user.access.languages.includes('espagnol')) { %>
+                            <h5 class="progress-title">Espagnol</h5>
+                            <div class="progress mb-3">
+                                <div class="progress-bar bg-warning" role="progressbar" style="width: 65%" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        <% } %>
+                        
+                        <% if (user.access.languages.includes('français')) { %>
+                            <h5 class="progress-title">Français</h5>
+                            <div class="progress mb-3">
+                                <div class="progress-bar bg-primary" role="progressbar" style="width: 45%" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        <% } %>
+                        
+                        <% if (user.access.languages.includes('anglais')) { %>
+                            <h5 class="progress-title">Anglais</h5>
+                            <div class="progress mb-3">
+                                <div class="progress-bar bg-danger" role="progressbar" style="width: 30%" aria-valuenow="30" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        <% } %>
+                        
+                        <% if (user.access.languages.includes('portugais')) { %>
+                            <h5 class="progress-title">Portugais</h5>
+                            <div class="progress mb-3">
+                                <div class="progress-bar bg-success" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        <% } %>
+
+                        <div class="text-center mt-4">
+                            <a href="/espagnol" class="btn btn-outline-primary">Continuer l'apprentissage</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-8 mb-4">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h4 class="mb-0"><i class="fas fa-history me-2"></i>Activités récentes</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
+                                <div>
+                                    <span class="badge bg-primary me-2">Espagnol</span>
+                                    <span>Session de vocabulaire terminée</span>
+                                </div>
+                                <span class="text-muted">il y a 2 jours</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
+                                <div>
+                                    <span class="badge bg-primary me-2">Espagnol</span>
+                                    <span>Dialogue "Au restaurant" pratiqué</span>
+                                </div>
+                                <span class="text-muted">il y a 3 jours</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
+                                <div>
+                                    <span class="badge bg-primary me-2">Espagnol</span>
+                                    <span>Histoire "Voyage à Madrid" lue</span>
+                                </div>
+                                <span class="text-muted">il y a 5 jours</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4 mb-4">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h4 class="mb-0"><i class="fas fa-bullseye me-2"></i>Objectifs</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="progress-title">Mots à apprendre</div>
+                            <span class="badge bg-primary">60/100</span>
+                        </div>
+                        <div class="progress mb-4">
+                            <div class="progress-bar bg-primary" role="progressbar" style="width: 60%" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="progress-title">Dialogues à pratiquer</div>
+                            <span class="badge bg-success">8/10</span>
+                        </div>
+                        <div class="progress mb-4">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: 80%" aria-valuenow="80" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="progress-title">Histoires à lire</div>
+                            <span class="badge bg-warning">3/5</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-warning" role="progressbar" style="width: 60%" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <% if (session.isAdmin) { %>
+        <div class="text-end mt-3">
+            <a href="/admin" class="btn btn-outline-dark">
+                <i class="fas fa-cog me-2"></i>Panneau d'administration
+            </a>
+        </div>
+        <% } %>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

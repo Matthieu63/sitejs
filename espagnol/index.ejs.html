@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apprendre l'Espagnol - Polyglot</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --spanish-color: #F1BF00;
+            --spanish-dark: #E0B000;
+            --spanish-light: #FFD630;
+            --text-color: #333;
+            --bg-color: #f8f9fa;
+        }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+        
+        .navbar-spanish {
+            background-color: var(--spanish-color);
+        }
+        
+        .hero-section {
+            background: linear-gradient(rgba(241, 191, 0, 0.8), rgba(241, 191, 0, 0.6)), url('/images/spanish-bg.jpg');
+            background-size: cover;
+            background-position: center;
+            color: white;
+            padding: 6rem 0;
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .hero-subtitle {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+        }
+        
+        .card-feature {
+            border: none;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+            height: 100%;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-feature:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .card-icon {
+            font-size: 3rem;
+            color: var(--spanish-color);
+            margin-bottom: 1rem;
+        }
+        
+        .card-feature-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--spanish-dark);
+        }
+        
+        .card-body {
+            padding: 2rem;
+        }
+        
+        .btn-spanish {
+            background-color: var(--spanish-color);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            font-weight: 600;
+            border-radius: 30px;
+            transition: all 0.3s;
+        }
+        
+        .btn-spanish:hover {
+            background-color: var(--spanish-dark);
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(241, 191, 0, 0.3);
+        }
+        
+        .btn-outline-spanish {
+            color: var(--spanish-color);
+            border: 2px solid var(--spanish-color);
+            background-color: transparent;
+            padding: 0.8rem 1.5rem;
+            font-weight: 600;
+            border-radius: 30px;
+            transition: all 0.3s;
+        }
+        
+        .btn-outline-spanish:hover {
+            background-color: var(--spanish-color);
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(241, 191, 0, 0.3);
+        }
+        
+        .section-title {
+            position: relative;
+            margin-bottom: 3rem;
+            font-weight: 700;
+            color: var(--spanish-dark);
+            text-align: center;
+        }
+        
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background-color: var(--spanish-color);
+        }
+        
+        .recent-activity {
+            margin-top: 4rem;
+            padding: 3rem 0;
+            background-color: white;
+        }
+        
+        .carousel-control-prev-icon,
+        .carousel-control-next-icon {
+            background-color: var(--spanish-color);
+            border-radius: 50%;
+            padding: 25px;
+        }
+        
+        .testimonial-card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin: 0 1rem;
+        }
+        
+        .testimonial-text {
+            font-style: italic;
+            margin-bottom: 1rem;
+        }
+        
+        .testimonial-author {
+            font-weight: 600;
+        }
+        
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .hero-subtitle {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-spanish">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-language me-2"></i>Polyglot
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/espagnol">Accueil</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/espagnol/vocab">Vocabulaire</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/espagnol/dialogues">Dialogues</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/espagnol/stories">Histoires</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/dashboard">
+                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/logout">
+                            <i class="fas fa-sign-out-alt me-1"></i>Déconnexion
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="hero-section">
+        <div class="container">
+            <h1 class="hero-title">¡Bienvenido a Español!</h1>
+            <p class="hero-subtitle">Apprenez l'espagnol avec notre méthode interactive et immersive</p>
+            <div class="d-flex justify-content-center gap-3">
+                <a href="/espagnol/vocab" class="btn btn-spanish btn-lg">
+                    <i class="fas fa-book me-2"></i>Commencer
+                </a>
+                <a href="#features" class="btn btn-outline-spanish btn-lg">
+                    <i class="fas fa-info-circle me-2"></i>En savoir plus
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <section id="features" class="container mb-5">
+        <h2 class="section-title">Nos méthodes d'apprentissage</h2>
+        
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-3">
+                <div class="card card-feature">
+                    <div class="card-body text-center">
+                        <div class="card-icon">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <h3 class="card-feature-title">Vocabulaire</h3>
+                        <p>Apprenez des mots nouveaux chaque jour avec notre système de flashcards intelligent qui s'adapte à votre progression.</p>
+                        <a href="/espagnol/vocab" class="btn btn-outline-spanish mt-3">Explorer</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-3">
+                <div class="card card-feature">
+                    <div class="card-body text-center">
+                        <div class="card-icon">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <h3 class="card-feature-title">Dialogues</h3>
+                        <p>Pratiquez des conversations réelles avec des dialogues immersifs générés par IA, adaptés à votre niveau.</p>
+                        <a href="/espagnol/dialogues" class="btn btn-outline-spanish mt-3">Pratiquer</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-3">
+                <div class="card card-feature">
+                    <div class="card-body text-center">
+                        <div class="card-icon">
+                            <i class="fas fa-book-reader"></i>
+                        </div>
+                        <h3 class="card-feature-title">Histoires</h3>
+                        <p>Plongez dans des histoires interactives qui renforcent votre compréhension et enrichissent votre vocabulaire.</p>
+                        <a href="/espagnol/stories" class="btn btn-outline-spanish mt-3">Lire</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-3">
+                <div class="card card-feature">
+                    <div class="card-body text-center">
+                        <div class="card-icon">
+                            <i class="fas fa-headphones"></i>
+                        </div>
+                        <h3 class="card-feature-title">Prononciation</h3>
+                        <p>Améliorez votre accent avec notre technologie de synthèse vocale qui vous permet d'entendre chaque mot et phrase.</p>
+                        <a href="/espagnol/vocab" class="btn btn-outline-spanish mt-3">Écouter</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Recent Activity Section -->
+    <section class="recent-activity">
+        <div class="container">
+            <h2 class="section-title">Votre progression récente</h2>
+            
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-star text-warning me-2"></i>Vocabulaire</h5>
+                            <div class="progress mb-3">
+                                <div class="progress-bar bg-warning" role="progressbar" style="width: 65%" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <p class="card-text">Vous avez appris 65 mots sur 100 dans votre programme actuel.</p>
+                            <a href="/espagnol/vocab" class="btn btn-spanish">Continuer</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-comments text-warning me-2"></i>Dialogues</h5>
+                            <div class="progress mb-3">
+                                <div class="progress-bar bg-warning" role="progressbar" style="width: 40%" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <p class="card-text">Vous avez pratiqué 4 dialogues sur 10 dans votre niveau actuel.</p>
+                            <a href="/espagnol/dialogues" class="btn btn-spanish">Continuer</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-book-reader text-warning me-2"></i>Histoires</h5>
+                            <div class="progress mb-3">
+                                <div class="progress-bar bg-warning" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <p class="card-text">Vous avez lu 1 histoire sur 5 dans votre niveau actuel.</p>
+                            <a href="/espagnol/stories" class="btn btn-spanish">Continuer</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="container my-5">
+        <h2 class="section-title">Ce que disent nos apprenants</h2>
+        
+        <div id="testimonialCarousel" class="carousel slide" data-bs-ride="carousel">
+            <div class="carousel-inner">
+                <div class="carousel-item active">
+                    <div class="testimonial-card">
+                        <p class="testimonial-text">"Grâce à Polyglot, j'ai pu apprendre l'espagnol de manière ludique et efficace. Les dialogues interactifs m'ont vraiment aidé à améliorer ma compréhension et ma prononciation."</p>
+                        <p class="testimonial-author">- Sophie D.</p>
+                    </div>
+                </div>
+                <div class="carousel-item">
+                    <div class="testimonial-card">
+                        <p class="testimonial-text">"L'apprentissage par les histoires est génial ! Je comprends maintenant beaucoup mieux les subtilités de la langue espagnole. Très recommandé !"</p>
+                        <p class="testimonial-author">- Thomas L.</p>
+                    </div>
+                </div>
+                <div class="carousel-item">
+                    <div class="testimonial-card">
+                        <p class="testimonial-text">"J'adore la façon dont le vocabulaire est présenté et comment je peux écouter la prononciation. Après seulement 3 mois, je peux tenir une conversation basique en espagnol !"</p>
+                        <p class="testimonial-author">- Marie C.</p>
+                    </div>
+                </div>
+            </div>
+            <button class="carousel-control-prev" type="button" data-bs-target="#testimonialCarousel" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Previous</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#testimonialCarousel" data-bs-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Next</span>
+            </button>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-light py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5><i class="fas fa-language me-2"></i>Polyglot</h5>
+                    <p>Apprendre une langue n'a jamais été aussi facile et amusant.</p>
+                </div>
+                <div class="col-md-3">
+                    <h5>Liens rapides</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="/espagnol/vocab" class="text-light">Vocabulaire</a></li>
+                        <li><a href="/espagnol/dialogues" class="text-light">Dialogues</a></li>
+                        <li><a href="/espagnol/stories" class="text-light">Histoires</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h5>Mon compte</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="/dashboard" class="text-light">Tableau de bord</a></li>
+                        <li><a href="/logout" class="text-light">Déconnexion</a></li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="mt-4">
+            <div class="text-center">
+                <p class="mb-0">&copy; <%= new Date().getFullYear() %> Polyglot. Tous droits réservés.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
