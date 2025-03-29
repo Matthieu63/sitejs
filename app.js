@@ -14,7 +14,9 @@ const db = require('./config/database');
 db.initDatabase();
 
 // Importer les routes
-const authRoutes = require('./routes/authRoutes');
+
+const dbInit = require('./database/init'); // ou le chemin que tu choisis
+dbInit.initAllDatabases();
 const adminRoutes = require('./routes/adminRoutes');
 const vocabRoutes = require('./routes/vocabRoutes');
 const dialoguesRoutes = require('./routes/dialoguesRoutes');
