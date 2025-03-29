@@ -9,6 +9,10 @@ const dotenv = require('dotenv');
 // Chargement des variables d'environnement
 dotenv.config();
 
+// Définir le chemin du fichier users.json
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname);
+const USERS_FILE = path.join(DATA_DIR, 'users.json');
+
 // Initialisation de la base de données
 const db = require('./config/database');
 db.initDatabase();
@@ -50,49 +54,46 @@ app.use((req, res, next) => {
   next();
 });
 
-// Afficher le formulaire de connexion
-app.get('/login', (req, res) => {
-  res.render('login', { error: null });
-});
-
-
-// Gérer la soumission du formulaire de connexion
-app.post('/login', (req, res) => {
-  const { username, password } = req.body;
-  const users = JSON.parse(fs.readFileSync('users.json', 'utf8'));
-  if (users[username] && users[username].password === password) {
-    req.session.user = username;
-    req.session.isAdmin = users[username].is_admin || false;
-    return res.redirect('/dashboard');
-  }
-  res.render('login', { error: 'Identifiants incorrects' });
-});
-
-// Juste après les middlewares et avant les définitions de routes
-
-// Exposer session à EJS
-app.use((req, res, next) => {
-  res.locals.session = req.session;
-  next();
-});
-
 // Fonction pour initialiser la base de données utilisateur
 function initUserDatabase(username) {
-  const users = JSON.parse(fs.readFileSync('users.json', 'utf8'));
-  
-  // Vérifier si l'utilisateur existe
-  if (!users[username]) {
+  try {
+    // Vérifier si le fichier existe
+    if (!fs.existsSync(USERS_FILE)) {
+      const defaultUsers = {
+        "admin": {
+          "password": "admin123",
+          "is_admin": true,
+          "access": {
+            "languages": ["français", "espagnol"],
+            "modules": ["christ", "culture", "recettes"]
+          },
+          "data": {}
+        }
+      };
+      fs.writeFileSync(USERS_FILE, JSON.stringify(defaultUsers, null, 2));
+      console.log(`Fichier ${USERS_FILE} créé avec un utilisateur admin par défaut`);
+    }
+    
+    const users = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
+    
+    // Vérifier si l'utilisateur existe
+    if (!users[username]) {
+      console.warn(`Utilisateur ${username} non trouvé dans la base de données`);
+      return false;
+    }
+    
+    // Initialiser les données utilisateur si nécessaire
+    if (!users[username].data) {
+      users[username].data = {};
+    }
+    
+    // Enregistrer les modifications
+    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+    return true;
+  } catch (error) {
+    console.error(`Erreur lors de l'initialisation de la base de données utilisateur: ${error.message}`);
     return false;
   }
-  
-  // Initialiser les données utilisateur si nécessaire
-  if (!users[username].data) {
-    users[username].data = {};
-  }
-  
-  // Enregistrer les modifications
-  fs.writeFileSync('users.json', JSON.stringify(users, null, 2));
-  return true;
 }
 
 // Afficher le formulaire de connexion
@@ -100,6 +101,48 @@ app.get('/login', (req, res) => {
   res.render('login', { error: null });
 });
 
+// Gérer la soumission du formulaire de connexion
+app.post('/login', (req, res) => {
+  try {
+    const { username, password } = req.body;
+    
+    // Vérifier si le fichier users.json existe
+    if (!fs.existsSync(USERS_FILE)) {
+      // Si le fichier n'existe pas, créer un utilisateur par défaut
+      const defaultUsers = {
+        "admin": {
+          "password": "admin123",
+          "is_admin": true,
+          "access": {
+            "languages": ["français", "espagnol"],
+            "modules": ["christ", "culture", "recettes"]
+          },
+          "data": {}
+        }
+      };
+      fs.writeFileSync(USERS_FILE, JSON.stringify(defaultUsers, null, 2));
+      console.log(`Fichier ${USERS_FILE} créé avec un utilisateur admin par défaut`);
+    }
+    
+    const users = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
+    
+    if (users[username] && users[username].password === password) {
+      req.session.user = username;
+      req.session.isAdmin = users[username].is_admin || false;
+      return res.redirect('/dashboard');
+    }
+    res.render('login', { error: 'Identifiants incorrects' });
+  } catch (error) {
+    console.error(`Erreur lors de la connexion: ${error.message}`);
+    res.render('login', { error: 'Une erreur est survenue. Veuillez réessayer.' });
+  }
+});
+
+// Route de déconnexion
+app.get('/logout', (req, res) => {
+  req.session.destroy();
+  res.redirect('/login');
+});
 
 // Enregistrer les routes personnalisées
 app.use('/admin', adminRoutes);
@@ -111,46 +154,78 @@ app.use('/espagnol/api/polly', pollyRoutes);
 // Route principale
 app.get('/', (req, res) => {
   if (!req.session.user) return res.redirect('/login');
-  initUserDatabase(req.session.user);
-  const users = JSON.parse(fs.readFileSync('users.json', 'utf8'));
-  const user = users[req.session.user];
-  res.render('index', { user });
+  try {
+    if (initUserDatabase(req.session.user)) {
+      const users = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
+      const user = users[req.session.user];
+      res.render('index', { user });
+    } else {
+      req.session.destroy();
+      res.redirect('/login');
+    }
+  } catch (error) {
+    console.error(`Erreur sur la route /: ${error.message}`);
+    res.status(500).render('error', { message: 'Une erreur est survenue' });
+  }
 });
 
 // Dashboard
 app.get('/dashboard', (req, res) => {
   if (!req.session.user) return res.redirect('/login');
-  initUserDatabase(req.session.user);
-  const users = JSON.parse(fs.readFileSync('users.json', 'utf8'));
-  const user = users[req.session.user];
-  res.render('dashboard', { user });
+  try {
+    if (initUserDatabase(req.session.user)) {
+      const users = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
+      const user = users[req.session.user];
+      res.render('dashboard', { user });
+    } else {
+      req.session.destroy();
+      res.redirect('/login');
+    }
+  } catch (error) {
+    console.error(`Erreur sur la route /dashboard: ${error.message}`);
+    res.status(500).render('error', { message: 'Une erreur est survenue' });
+  }
 });
 
 // Admin page
 app.get('/admin', (req, res) => {
   if (!req.session.isAdmin) return res.redirect('/dashboard');
-  const users = JSON.parse(fs.readFileSync('users.json', 'utf8'));
-  res.render('admin', { users });
+  try {
+    const users = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
+    res.render('admin', { users });
+  } catch (error) {
+    console.error(`Erreur sur la route /admin: ${error.message}`);
+    res.status(500).render('error', { message: 'Une erreur est survenue' });
+  }
 });
 
 // Espagnol
 app.get('/espagnol', (req, res) => {
   if (!req.session.user) return res.redirect('/login');
-  initUserDatabase(req.session.user);
-  const users = JSON.parse(fs.readFileSync('users.json', 'utf8'));
-  const user = users[req.session.user];
+  try {
+    if (initUserDatabase(req.session.user)) {
+      const users = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
+      const user = users[req.session.user];
 
-  if (!user.access.languages.includes('espagnol')) {
-    return res.status(403).send('Accès refusé');
+      if (!user.access.languages.includes('espagnol')) {
+        return res.status(403).render('error', { message: 'Accès refusé' });
+      }
+
+      if (!user.data) user.data = {};
+      if (!user.data.espagnol) user.data.espagnol = {};
+
+      users[req.session.user] = user;
+      fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+
+      res.render('espagnol/index', { user });
+    } else {
+      req.session.destroy();
+      res.redirect('/login');
+    }
+  } catch (error) {
+    console.error(`Erreur sur la route /espagnol: ${error.message}`);
+    res.status(500).render('error', { message: 'Une erreur est survenue' });
   }
-
-  if (!user.data) user.data = {};
-  if (!user.data.espagnol) user.data.espagnol = {};
-
-  users[req.session.user] = user;
-  fs.writeFileSync('users.json', JSON.stringify(users, null, 2));
-
-  res.render('espagnol/index', { user });
 });
 
 // Gérer les erreurs 404
@@ -162,20 +237,25 @@ app.use((req, res) => {
 // Lancer le serveur
 app.listen(PORT, () => {
   console.log(`Serveur démarré sur le port ${PORT}`);
-  if (!fs.existsSync('users.json')) {
-    const defaultUsers = {
-      "admin": {
-        "password": "admin123",
-        "is_admin": true,
-        "access": {
-          "languages": ["français", "espagnol"],
-          "modules": ["christ", "culture", "recettes"]
-        },
-        "data": {}
-      }
-    };
-    fs.writeFileSync('users.json', JSON.stringify(defaultUsers, null, 2));
-    console.log('Fichier users.json créé avec un utilisateur admin par défaut');
+  try {
+    // S'assurer que le fichier users.json existe au démarrage
+    if (!fs.existsSync(USERS_FILE)) {
+      const defaultUsers = {
+        "admin": {
+          "password": "admin123",
+          "is_admin": true,
+          "access": {
+            "languages": ["français", "espagnol"],
+            "modules": ["christ", "culture", "recettes"]
+          },
+          "data": {}
+        }
+      };
+      fs.writeFileSync(USERS_FILE, JSON.stringify(defaultUsers, null, 2));
+      console.log(`Fichier ${USERS_FILE} créé avec un utilisateur admin par défaut`);
+    }
+  } catch (error) {
+    console.error(`Erreur lors de l'initialisation du fichier users.json: ${error.message}`);
   }
 });
 
