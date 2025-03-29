@@ -17,7 +17,7 @@ db.initDatabase();
 
 const dbInit = require('./database/dbInit');
 const pollyInit = require('./database/pollyInit');
-dbInit.initAllDatabases();
+// dbInit.initAllDatabases() supprimé — on initialise par utilisateur
 const adminRoutes = require('./routes/adminRoutes');
 const vocabRoutes = require('./routes/vocabRoutes');
 const dialoguesRoutes = require('./routes/dialoguesRoutes');
@@ -67,6 +67,7 @@ app.get('/', (req, res) => {
   if (!req.session.user) {
     return res.redirect('/login');
   }
+  initUserDatabase(req.session.user);
   
   // Charger les utilisateurs depuis le JSON
   const users = JSON.parse(fs.readFileSync('users.json', 'utf8'));
@@ -80,6 +81,7 @@ app.get('/dashboard', (req, res) => {
   if (!req.session.user) {
     return res.redirect('/login');
   }
+  initUserDatabase(req.session.user);
   
   const users = JSON.parse(fs.readFileSync('users.json', 'utf8'));
   const user = users[req.session.user];
@@ -103,6 +105,7 @@ app.get('/espagnol', (req, res) => {
   if (!req.session.user) {
     return res.redirect('/login');
   }
+  initUserDatabase(req.session.user);
   
   const users = JSON.parse(fs.readFileSync('users.json', 'utf8'));
   const user = users[req.session.user];

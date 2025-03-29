@@ -1,70 +1,67 @@
-// database/dbInit.js
-
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const fs = require('fs');
 
-// Fichiers de base de données
-const VOCAB_DB = path.join(__dirname, '../polyglot-node/db/vocabulaire.db');
-const DIALOGUE_DB = path.join(__dirname, '../polyglot-node/db/dialogues.db');
-const STORIES_DB = path.join(__dirname, '../polyglot-node/db/stories.db');
+// Dossier contenant les bases utilisateurs
+const USER_DB_FOLDER = path.join(__dirname, '../user-databases');
 
-function initVocabDB() {
-  const db = new sqlite3.Database(VOCAB_DB);
+// Créer le dossier s’il n’existe pas
+if (!fs.existsSync(USER_DB_FOLDER)) {
+  fs.mkdirSync(USER_DB_FOLDER, { recursive: true });
+}
+
+// Obtenir le chemin vers la base d’un utilisateur
+function getUserDBPath(username) {
+  return path.join(USER_DB_FOLDER, `${username}.db`);
+}
+
+// Créer toutes les tables dans la base utilisateur
+function initUserDatabase(username) {
+  const dbPath = getUserDBPath(username);
+  const db = new sqlite3.Database(dbPath);
+
   db.serialize(() => {
+    // Table vocabulaire
     db.run(`CREATE TABLE IF NOT EXISTS mots (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       word TEXT,
+      langue TEXT,
       synthese TEXT,
       youglish TEXT,
       image TEXT,
       tags TEXT,
       note INTEGER DEFAULT 0,
-      exemples TEXT,
-      user TEXT
+      exemples TEXT
     )`);
-  });
-  db.close();
-}
 
-function initDialoguesDB() {
-  const db = new sqlite3.Database(DIALOGUE_DB);
-  db.serialize(() => {
+    // Table dialogues
     db.run(`CREATE TABLE IF NOT EXISTS dialogues (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       titre TEXT,
+      langue TEXT,
       texte TEXT,
       audio TEXT,
       note INTEGER DEFAULT 0,
-      tags TEXT,
-      user TEXT
+      tags TEXT
     )`);
-  });
-  db.close();
-}
 
-function initStoriesDB() {
-  const db = new sqlite3.Database(STORIES_DB);
-  db.serialize(() => {
+    // Table histoires
     db.run(`CREATE TABLE IF NOT EXISTS stories (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       titre TEXT,
+      langue TEXT,
       contenu TEXT,
       audio TEXT,
       note INTEGER DEFAULT 0,
-      tags TEXT,
-      user TEXT
+      tags TEXT
     )`);
   });
-  db.close();
-}
 
-function initAllDatabases() {
-  initVocabDB();
-  initDialoguesDB();
-  initStoriesDB();
-  console.log("Toutes les tables ont été initialisées dans la base de données");
+  db.close();
+  console.log(`Base utilisateur ${username}.db initialisée`);
 }
 
 module.exports = {
-  initAllDatabases
+  initUserDatabase,
+  getUserDBPath
 };
