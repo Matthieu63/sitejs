@@ -68,6 +68,39 @@ app.post('/login', (req, res) => {
   res.render('login', { error: 'Identifiants incorrects' });
 });
 
+// Juste après les middlewares et avant les définitions de routes
+
+// Exposer session à EJS
+app.use((req, res, next) => {
+  res.locals.session = req.session;
+  next();
+});
+
+// Fonction pour initialiser la base de données utilisateur
+function initUserDatabase(username) {
+  const users = JSON.parse(fs.readFileSync('users.json', 'utf8'));
+  
+  // Vérifier si l'utilisateur existe
+  if (!users[username]) {
+    return false;
+  }
+  
+  // Initialiser les données utilisateur si nécessaire
+  if (!users[username].data) {
+    users[username].data = {};
+  }
+  
+  // Enregistrer les modifications
+  fs.writeFileSync('users.json', JSON.stringify(users, null, 2));
+  return true;
+}
+
+// Afficher le formulaire de connexion
+app.get('/login', (req, res) => {
+  res.render('login', { error: null });
+});
+
+
 // Enregistrer les routes personnalisées
 app.use('/admin', adminRoutes);
 app.use('/espagnol', vocabRoutes);
