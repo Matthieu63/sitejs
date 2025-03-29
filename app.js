@@ -54,7 +54,7 @@ app.use((req, res, next) => {
 });
 
 // Enregistrer les routes
-app.use('/', authRoutes);
+
 app.use('/admin', adminRoutes);
 app.use('/espagnol', vocabRoutes);
 app.use('/espagnol/dialogues', dialoguesRoutes);
