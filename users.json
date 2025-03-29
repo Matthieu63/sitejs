@@ -1,0 +1,11 @@
+{
+  "admin": {
+    "password": "admin123",
+    "is_admin": true,
+    "access": {
+      "languages": ["français", "espagnol"],
+      "modules": ["christ", "culture", "recettes"]
+    },
+    "data": {}
+  }
+}
