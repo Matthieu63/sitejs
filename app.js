@@ -131,8 +131,10 @@ app.get('/espagnol', (req, res) => {
 
 // Gérer les erreurs 404
 app.use((req, res) => {
-  res.status(404).render('error', { message: 'Page non trouvée' });
+  console.warn(`404 pour : ${req.originalUrl}`);
+  res.redirect('/login');
 });
+
 
 // Démarrer le serveur
 app.listen(PORT, () => {
