@@ -129,6 +129,26 @@ app.get('/espagnol', (req, res) => {
   res.render('espagnol/index', { user });
 });
 
+// Afficher le formulaire de connexion
+app.get('/login', (req, res) => {
+  res.render('login');
+});
+
+// Gérer la soumission du formulaire de connexion
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+  const users = JSON.parse(fs.readFileSync('users.json', 'utf8'));
+
+  if (users[username] && users[username].password === password) {
+    req.session.user = username;
+    req.session.isAdmin = users[username].is_admin || false;
+    return res.redirect('/dashboard');
+  }
+
+  res.render('login', { error: 'Identifiants incorrects' });
+});
+
+
 // Gérer les erreurs 404
 app.use((req, res) => {
   console.warn(`404 pour : ${req.originalUrl}`);
@@ -158,25 +178,7 @@ app.listen(PORT, () => {
   }
 });
 
-// Affichage du formulaire de login
-app.get('/login', (req, res) => {
-  res.render('login');
-});
 
-// Traitement du login
-app.post('/login', (req, res) => {
-  const { username, password } = req.body;
-
-  const users = JSON.parse(fs.readFileSync('users.json', 'utf8'));
-
-  if (users[username] && users[username].password === password) {
-    req.session.user = username;
-    req.session.isAdmin = users[username].is_admin || false;
-    return res.redirect('/dashboard');
-  }
-
-  res.render('login', { error: 'Identifiants incorrects' });
-});
 
 
 
