@@ -2,6 +2,7 @@
 app.js
 config
 controllers
+database
 espagnol
 listing.txt
 models
@@ -10,5 +11,6 @@ polyglot-node
 Procfile
 README.md
 routes
+routes.zip
 scripts
 views

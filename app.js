@@ -15,7 +15,8 @@ db.initDatabase();
 
 // Importer les routes
 
-const dbInit = require('./database/init'); // ou le chemin que tu choisis
+const dbInit = require('./database/dbInit');
+const pollyInit = require('./database/pollyInit');
 dbInit.initAllDatabases();
 const adminRoutes = require('./routes/adminRoutes');
 const vocabRoutes = require('./routes/vocabRoutes');

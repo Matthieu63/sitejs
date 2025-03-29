@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const pollyController = require('../controllers/pollyController');
+const polly = require('../database/pollyInit'); // ← middleware Polly
 
 // Middleware pour vérifier si l'utilisateur est connecté
 function isLoggedIn(req, res, next) {
@@ -10,13 +10,10 @@ function isLoggedIn(req, res, next) {
   next();
 }
 
-// Route pour convertir du texte en parole avec Amazon Polly
-router.post('/', isLoggedIn, pollyController.checkPollyClient, pollyController.synthesizeSpeech);
+// Route pour parler un texte
+router.post('/speak', isLoggedIn, polly.checkPollyClient, polly.speakText);
 
-// Route pour récupérer la liste des voix disponibles
-router.get('/voices', isLoggedIn, pollyController.checkPollyClient, pollyController.getVoices);
-
-// Route simplifiée pour parler un texte
-router.post('/speak', isLoggedIn, pollyController.checkPollyClient, pollyController.speakText);
+// Route pour obtenir les voix disponibles
+router.get('/voices', isLoggedIn, polly.checkPollyClient, polly.getVoices);
 
 module.exports = router;
