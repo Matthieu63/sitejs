@@ -158,5 +158,26 @@ app.listen(PORT, () => {
   }
 });
 
+// Affichage du formulaire de login
+app.get('/login', (req, res) => {
+  res.render('login');
+});
+
+// Traitement du login
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+
+  const users = JSON.parse(fs.readFileSync('users.json', 'utf8'));
+
+  if (users[username] && users[username].password === password) {
+    req.session.user = username;
+    req.session.isAdmin = users[username].is_admin || false;
+    return res.redirect('/dashboard');
+  }
+
+  res.render('login', { error: 'Identifiants incorrects' });
+});
+
+
+
 module.exports = app;
-//test
