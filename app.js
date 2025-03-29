@@ -52,8 +52,9 @@ app.use((req, res, next) => {
 
 // Afficher le formulaire de connexion
 app.get('/login', (req, res) => {
-  res.render('login');
+  res.render('login', { error: null });
 });
+
 
 // Gérer la soumission du formulaire de connexion
 app.post('/login', (req, res) => {
