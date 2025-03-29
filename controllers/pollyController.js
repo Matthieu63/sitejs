@@ -1,6 +1,4 @@
 const AWS = require('aws-sdk');
-const fs = require('fs');
-const path = require('path');
 
 // Configuration AWS
 AWS.config.update({
@@ -30,10 +28,10 @@ const AVAILABLE_VOICES = {
 
 // Configuration des moteurs par voix
 const VOICE_ENGINE_MAP = {
-  "Lucia": "neural",     // Lucia fonctionne mieux avec neural
-  "Enrique": "standard", // Enrique avec standard
-  "Sergio": "neural",    // Sergio nécessite neural
-  "Conchita": "standard", // Conchita avec standard
+  "Lucia": "neural",
+  "Enrique": "standard",
+  "Sergio": "neural",
+  "Conchita": "standard",
   "Léa": "neural",
   "Mathieu": "standard",
   "Céline": "standard",
@@ -46,16 +44,16 @@ const VOICE_ENGINE_MAP = {
   "Vitória": "standard"
 };
 
-// Vérifier si Polly est initialisé
-function checkPollyClient(req, res, next) {
+// Vérifier si Polly est initialisé - fonction middleware
+const checkPollyClient = (req, res, next) => {
   if (!pollyClient) {
     return res.status(500).json({ error: 'AWS Polly client not initialized' });
   }
   next();
-}
+};
 
-// Synthétiser la parole
-async function synthesizeSpeech(req, res) {
+// Synthétiser la parole - fonction middleware
+const synthesizeSpeech = async (req, res, next) => {
   try {
     const data = req.body;
     
@@ -69,15 +67,13 @@ async function synthesizeSpeech(req, res) {
     }
     
     // Paramètres configurables
-    const voiceId = data.voice || 'Lucia';  // Lucia pour l'espagnol par défaut
+    const voiceId = data.voice || 'Lucia';
     const languageCode = data.language || 'es-ES';
     
     console.log(`Synthesizing speech for text: ${text.substring(0, 50)}... with voice: ${voiceId}`);
     
-    // Obtenir le moteur approprié pour cette voix
+    // Obtenir le moteur approprié
     const engine = VOICE_ENGINE_MAP[voiceId] || "standard";
-    
-    console.log(`Utilisation du moteur '${engine}' pour la voix '${voiceId}'`);
     
     // Paramètres pour la synthèse vocale
     const params = {
@@ -119,10 +115,10 @@ async function synthesizeSpeech(req, res) {
     console.error('Error in speech synthesis:', error);
     res.status(500).json({ error: error.message });
   }
-}
+};
 
-// Récupérer la liste des voix disponibles
-async function getVoices(req, res) {
+// Récupérer la liste des voix - fonction middleware
+const getVoices = async (req, res, next) => {
   try {
     const language = req.query.language || 'es-ES';
     
@@ -178,13 +174,13 @@ async function getVoices(req, res) {
     console.error('Error in get_voices endpoint:', error);
     res.status(500).json({ error: error.message });
   }
-}
+};
 
-// Simplifier l'API pour parler un texte
-async function speakText(req, res) {
-  // Cette fonction est identique à synthesizeSpeech, mais avec une interface plus simple
-  return synthesizeSpeech(req, res);
-}
+// Simplifier l'API pour parler un texte - fonction middleware
+const speakText = async (req, res, next) => {
+  // Cette fonction est identique à synthesizeSpeech pour le moment
+  return synthesizeSpeech(req, res, next);
+};
 
 module.exports = {
   checkPollyClient,
