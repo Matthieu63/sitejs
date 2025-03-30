@@ -21,18 +21,20 @@ router.get("/", async (req, res) => {
 
 // Voir un dialogue spécifique
 router.get("/view/:id", async (req, res) => {
-  const userId = req.session.userId;
-  const dialogueId = req.params.id;
-
   try {
-    const dialogue = await DialoguePg.getDialogueById(dialogueId);
+    const dialogue = await DialoguePg.getDialogueById(req.params.id);
     if (!dialogue) return res.status(404).send("Dialogue introuvable");
-    res.render("espagnol/dialogues_view", { dialogue });
+
+    res.render("espagnol/dialogues_view", {
+      dialogue,
+      file: { filename: dialogue.titre } // ici on simule un objet 'file'
+    });
   } catch (error) {
     console.error("Erreur lors de l'affichage du dialogue:", error);
     res.status(500).send("Erreur serveur");
   }
 });
+
 
 // Upload PDF & générer dialogues
 router.post("/", upload.single("pdfFile"), async (req, res) => {
