@@ -49,6 +49,17 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(methodOverride('_method'));
 app.use(express.static(path.join(__dirname, 'public')));
+const flash = require('connect-flash');
+
+// Ajoutez ceci après la configuration de session
+app.use(flash());
+
+// Exposer flash à EJS
+app.use((req, res, next) => {
+  res.locals.flash = req.flash();
+  res.locals.session = req.session;
+  next();
+});
 
 // Session
 app.use(session({

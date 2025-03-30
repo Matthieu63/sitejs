@@ -1,5 +1,4 @@
 // routes/vocabRoutes.js
-// routes/vocabRoutes.js
 const express = require('express');
 const router = express.Router();
 const { VocabPg: Vocab } = require('../models/VocabPg');
@@ -35,6 +34,13 @@ const upload = multer({
     }
   }
 });
+
+// Fonction utilitaire pour les messages flash sécurisés
+function safeFlash(req, type, message) {
+  if (typeof req.flash === 'function') {
+    req.flash(type, message);
+  }
+}
 
 // Middleware pour vérifier si l'utilisateur est connecté
 function isLoggedIn(req, res, next) {
@@ -93,7 +99,8 @@ router.get('/', isLoggedIn, async (req, res) => {
       currentUrl: req.originalUrl.split('?')[0],
       req: req, // Passer l'objet req pour accéder aux query parameters dans le template
       success: req.query.success,
-      word: req.query.word
+      word: req.query.word,
+      messages: typeof req.flash === 'function' ? req.flash() : {}
     });
   } catch (error) {
     console.error('Erreur lors de l\'affichage des mots:', error);
@@ -109,7 +116,10 @@ router.get('/add', isLoggedIn, async (req, res) => {
     // Récupérer tous les tags de l'utilisateur pour le formulaire
     const tags = await Vocab.getAllTags(userId);
     
-    res.render('espagnol/add_word', { tags });
+    res.render('espagnol/add_word', { 
+      tags,
+      messages: typeof req.flash === 'function' ? req.flash() : {} 
+    });
   } catch (error) {
     console.error('Erreur lors de l\'affichage du formulaire d\'ajout:', error);
     res.status(500).send('Erreur serveur');
@@ -179,7 +189,9 @@ router.post('/add', isLoggedIn, upload.single('image'), async (req, res) => {
       return res.json(result);
     } else {
       // Redirection avec message flash pour les requêtes normales
-      req.flash('success', `Le mot "${wordData.word}" a été ajouté avec succès!`);
+      if (typeof req.flash === 'function') {
+        req.flash('success', `Le mot "${wordData.word}" a été ajouté avec succès!`);
+      }
       return res.redirect('/espagnol/');
     }
   } catch (error) {
@@ -191,7 +203,9 @@ router.post('/add', isLoggedIn, upload.single('image'), async (req, res) => {
     if (isAjax) {
       return res.status(500).json({ status: 'error', message: error.message || 'Erreur serveur' });
     } else {
-      req.flash('error', `Erreur lors de l'ajout du mot: ${error.message}`);
+      if (typeof req.flash === 'function') {
+        req.flash('error', `Erreur lors de l'ajout du mot: ${error.message}`);
+      }
       return res.redirect('/espagnol/add');
     }
   }
@@ -347,7 +361,10 @@ router.get('/bulk_add', isLoggedIn, async (req, res) => {
     const userId = req.session.user;
     const tags = await Vocab.getAllTags(userId);
     
-    res.render('espagnol/bulk_add', { available_tags: tags });
+    res.render('espagnol/bulk_add', { 
+      available_tags: tags,
+      messages: typeof req.flash === 'function' ? req.flash() : {}
+    });
   } catch (error) {
     console.error('Erreur lors de l\'affichage du formulaire d\'ajout en masse:', error);
     res.status(500).send('Erreur serveur');
@@ -367,7 +384,9 @@ router.post('/bulk_add', isLoggedIn, async (req, res) => {
       .filter(word => word.length > 0);
     
     if (words.length === 0) {
-      req.flash('error', 'Aucun mot valide fourni');
+      if (typeof req.flash === 'function') {
+        req.flash('error', 'Aucun mot valide fourni');
+      }
       return res.redirect('/espagnol/bulk_add');
     }
     
@@ -435,11 +454,15 @@ router.post('/bulk_add', isLoggedIn, async (req, res) => {
       message += ` ${errors.length} erreurs rencontrées.`;
     }
     
-    req.flash('success', message);
+    if (typeof req.flash === 'function') {
+      req.flash('success', message);
+    }
     return res.redirect('/espagnol/');
   } catch (error) {
     console.error('Erreur lors de l\'ajout en masse:', error);
-    req.flash('error', `Erreur: ${error.message}`);
+    if (typeof req.flash === 'function') {
+      req.flash('error', `Erreur: ${error.message}`);
+    }
     return res.redirect('/espagnol/bulk_add');
   }
 });
@@ -568,61 +591,149 @@ router.get('/word/:id', isLoggedIn, async (req, res) => {
     const word = await Vocab.getWordById(wordId, userId);
     
     if (!word) {
-      req.flash('error', 'Mot non trouvé');
+      if (typeof req.flash === 'function') {
+        req.flash('error', 'Mot non trouvé');
+      }
       return res.redirect('/espagnol/');
     }
     
     // Récupérer les mots précédent et suivant pour la navigation
-    const db = await getDbConnection();
-    const allWordIds = await db.all("SELECT id FROM words ORDER BY lower(word)");
-    await db.close();
-    
-    const ids = allWordIds.map(row => row.id);
-    const currentIndex = ids.findIndex(id => id === parseInt(wordId));
-    
-    const prevId = currentIndex > 0 ? ids[currentIndex - 1] : null;
-    const nextId = currentIndex < ids.length - 1 ? ids[currentIndex + 1] : null;
-    
-    res.render('espagnol/word_detail', { 
-      word, 
-      prev_id: prevId, 
-      next_id: nextId 
-    });
+    // Notez que cette partie peut causer des erreurs avec PostgreSQL
+    // car nous utilisons getDbConnection qui n'est pas défini
+    try {
+      const pg = require('../config/postgres');
+      const query = "SELECT id FROM words WHERE user_id = $1 ORDER BY lower(word)";
+      const result = await pg.query(query, [userId]);
+      
+      const ids = result.rows.map(row => row.id);
+      const currentIndex = ids.findIndex(id => id === parseInt(wordId));
+      
+      const prevId = currentIndex > 0 ? ids[currentIndex - 1] : null;
+      const nextId = currentIndex < ids.length - 1 ? ids[currentIndex + 1] : null;
+      
+      res.render('espagnol/word_detail', { 
+        word, 
+        prev_id: prevId, 
+        next_id: nextId,
+        messages: typeof req.flash === 'function' ? req.flash() : {}
+      });
+    } catch (error) {
+      console.error('Erreur lors de la récupération des mots voisins:', error);
+      // Rendu de la page sans navigation
+      res.render('espagnol/word_detail', { 
+        word, 
+        prev_id: null, 
+        next_id: null,
+        messages: typeof req.flash === 'function' ? req.flash() : {}
+      });
+    }
   } catch (error) {
     console.error('Erreur lors de l\'affichage du mot:', error);
-    req.flash('error', `Erreur: ${error.message}`);
+    if (typeof req.flash === 'function') {
+      req.flash('error', `Erreur: ${error.message}`);
+    }
     res.redirect('/espagnol/');
   }
 });
+
+// Fonction temporaire pour remplacer getDbConnection
+async function getDbConnection() {
+  console.warn("Utilisation de getDbConnection() déprécié, migration vers PostgreSQL en cours");
+  const pg = require('../config/postgres');
+  
+  // Simuler l'interface SQLite avec PostgreSQL
+  return {
+    all: async (query, params = []) => {
+      // Convertir la requête SQLite en PostgreSQL
+      let pgQuery = query;
+      // Convertir les paramètres ? en $1, $2, etc.
+      if (params.length) {
+        let paramCounter = 1;
+        pgQuery = query.replace(/\?/g, () => `$${paramCounter++}`);
+      }
+      
+      try {
+        const result = await pg.query(pgQuery, params);
+        return result.rows;
+      } catch (error) {
+        console.error("Erreur SQL:", error);
+        return [];
+      }
+    },
+    get: async (query, params = []) => {
+      // Convertir la requête SQLite en PostgreSQL
+      let pgQuery = query;
+      // Convertir les paramètres ? en $1, $2, etc.
+      if (params.length) {
+        let paramCounter = 1;
+        pgQuery = query.replace(/\?/g, () => `$${paramCounter++}`);
+      }
+      
+      try {
+        const result = await pg.query(pgQuery, params);
+        return result.rows[0] || null;
+      } catch (error) {
+        console.error("Erreur SQL:", error);
+        return null;
+      }
+    },
+    run: async (query, params = []) => {
+      // Convertir la requête SQLite en PostgreSQL
+      let pgQuery = query;
+      // Convertir les paramètres ? en $1, $2, etc.
+      if (params.length) {
+        let paramCounter = 1;
+        pgQuery = query.replace(/\?/g, () => `$${paramCounter++}`);
+      }
+      
+      try {
+        await pg.query(pgQuery, params);
+        return { lastID: null, changes: 1 };
+      } catch (error) {
+        console.error("Erreur SQL:", error);
+        return { lastID: null, changes: 0 };
+      }
+    },
+    close: () => {
+      // Pas besoin de fermer la connexion avec PostgreSQL
+    }
+  };
+}
 
 // Route de gestion des tags
 router.get('/admin/tags', isLoggedIn, async (req, res) => {
   try {
     const userId = req.session.user;
-    const db = await getDbConnection();
+    
+    // Utilisation de PostgreSQL au lieu de SQLite
+    const pg = require('../config/postgres');
+    
+    const tagsQuery = "SELECT name FROM tags WHERE user_id = $1 OR user_id IS NULL ORDER BY name";
+    const tagsResult = await pg.query(tagsQuery, [userId]);
+    const tagsRaw = tagsResult.rows;
     
     const tagsData = [];
-    const tagsRaw = await db.all("SELECT name FROM tags ORDER BY name");
     
     for (const tag of tagsRaw) {
       // Compter les occurrences de ce tag dans les mots
-      const count = await db.get(
-        "SELECT COUNT(*) as count FROM words WHERE tags LIKE ?", 
-        [`%${tag.name}%`]
-      );
+      const countQuery = "SELECT COUNT(*) as count FROM words WHERE user_id = $1 AND tags LIKE $2";
+      const countResult = await pg.query(countQuery, [userId, `%${tag.name}%`]);
       
       tagsData.push({
         name: tag.name,
-        count: count.count
+        count: parseInt(countResult.rows[0].count) || 0
       });
     }
     
-    await db.close();
-    
-    res.render('espagnol/manage_tags', { tags: tagsData });
+    res.render('espagnol/manage_tags', { 
+      tags: tagsData,
+      messages: typeof req.flash === 'function' ? req.flash() : {}
+    });
   } catch (error) {
     console.error('Erreur lors de l\'affichage des tags:', error);
-    req.flash('error', `Erreur: ${error.message}`);
+    if (typeof req.flash === 'function') {
+      req.flash('error', `Erreur: ${error.message}`);
+    }
     res.redirect('/espagnol/');
   }
 });
@@ -633,56 +744,55 @@ router.post('/admin/tags', isLoggedIn, async (req, res) => {
     const userId = req.session.user;
     const { new_tag, delete_tag } = req.body;
     
+    // Utilisation de PostgreSQL
+    const pg = require('../config/postgres');
+    
     if (new_tag) {
       // Ajout d'un nouveau tag
-      const db = await getDbConnection();
-      
       // Vérifier si le tag existe déjà
-      const existing = await db.get(
-        "SELECT name FROM tags WHERE lower(name) = lower(?)",
-        [new_tag.trim()]
-      );
+      const existingQuery = "SELECT name FROM tags WHERE user_id = $1 AND lower(name) = lower($2)";
+      const existingResult = await pg.query(existingQuery, [userId, new_tag.trim()]);
       
-      if (!existing) {
-        await db.run("INSERT INTO tags (name) VALUES (?)", [new_tag.trim()]);
-        req.flash('success', `Le tag "${new_tag}" a été ajouté avec succès!`);
+      if (existingResult.rows.length === 0) {
+        const insertQuery = "INSERT INTO tags (user_id, name) VALUES ($1, $2)";
+        await pg.query(insertQuery, [userId, new_tag.trim()]);
+        if (typeof req.flash === 'function') {
+          req.flash('success', `Le tag "${new_tag}" a été ajouté avec succès!`);
+        }
       } else {
-        req.flash('warning', `Le tag "${new_tag}" existe déjà.`);
+        if (typeof req.flash === 'function') {
+          req.flash('warning', `Le tag "${new_tag}" existe déjà.`);
+        }
       }
-      
-      await db.close();
     } else if (delete_tag) {
       // Suppression d'un tag
-      const db = await getDbConnection();
-      
-      // Supprimer le tag
-      await db.run("DELETE FROM tags WHERE name = ?", [delete_tag]);
+      const deleteQuery = "DELETE FROM tags WHERE user_id = $1 AND name = $2";
+      await pg.query(deleteQuery, [userId, delete_tag]);
       
       // Mettre à jour les mots qui utilisent ce tag
-      const rows = await db.all(
-        "SELECT id, tags FROM words WHERE tags LIKE ?",
-        [`%${delete_tag}%`]
-      );
+      const selectQuery = "SELECT id, tags FROM words WHERE user_id = $1 AND tags LIKE $2";
+      const wordsResult = await pg.query(selectQuery, [userId, `%${delete_tag}%`]);
       
-      for (const row of rows) {
+      for (const row of wordsResult.rows) {
         const tagsList = row.tags.split(',').map(t => t.trim()).filter(t => t);
         const newTags = tagsList.filter(t => t.toLowerCase() !== delete_tag.toLowerCase());
         const updatedTags = newTags.join(', ');
         
-        await db.run(
-          "UPDATE words SET tags = ? WHERE id = ?",
-          [updatedTags, row.id]
-        );
+        const updateQuery = "UPDATE words SET tags = $1 WHERE id = $2 AND user_id = $3";
+        await pg.query(updateQuery, [updatedTags, row.id, userId]);
       }
       
-      await db.close();
-      req.flash('success', `Le tag "${delete_tag}" a été supprimé avec succès!`);
+      if (typeof req.flash === 'function') {
+        req.flash('success', `Le tag "${delete_tag}" a été supprimé avec succès!`);
+      }
     }
     
     res.redirect('/espagnol/admin/tags');
   } catch (error) {
     console.error('Erreur lors de la gestion des tags:', error);
-    req.flash('error', `Erreur: ${error.message}`);
+    if (typeof req.flash === 'function') {
+      req.flash('error', `Erreur: ${error.message}`);
+    }
     res.redirect('/espagnol/admin/tags');
   }
 });
@@ -698,15 +808,20 @@ router.get('/debug/check_tags', isLoggedIn, async (req, res) => {
       tags_in_words: []
     };
     
-    const db = await getDbConnection();
+    // Utiliser PostgreSQL au lieu de SQLite
+    const pg = require('../config/postgres');
     
     // 1. Vérifier la table tags
-    const tagCount = await db.get("SELECT COUNT(*) as count FROM tags");
-    result.messages.push(`Nombre de tags dans la table tags: ${tagCount.count}`);
+    const tagCountQuery = "SELECT COUNT(*) as count FROM tags WHERE user_id = $1 OR user_id IS NULL";
+    const tagCountResult = await pg.query(tagCountQuery, [userId]);
+    const tagCount = parseInt(tagCountResult.rows[0].count);
     
-    if (tagCount.count > 0) {
-      const tagsInDb = await db.all("SELECT name FROM tags ORDER BY name");
-      result.tags_in_db = tagsInDb.map(tag => tag.name);
+    result.messages.push(`Nombre de tags dans la table tags: ${tagCount}`);
+    
+    if (tagCount > 0) {
+      const tagsQuery = "SELECT name FROM tags WHERE user_id = $1 OR user_id IS NULL ORDER BY name";
+      const tagsResult = await pg.query(tagsQuery, [userId]);
+      result.tags_in_db = tagsResult.rows.map(tag => tag.name);
       result.messages.push(`Tags trouvés: ${result.tags_in_db.join(', ')}`);
     } else {
       result.messages.push("AUCUN TAG trouvé dans la table tags!");
@@ -715,29 +830,26 @@ router.get('/debug/check_tags', isLoggedIn, async (req, res) => {
       const defaultTags = ["médecine", "nourriture", "voyage", "famille", "maison", "commerce", "éducation"];
       for (const tag of defaultTags) {
         try {
-          await db.run("INSERT INTO tags (name) VALUES (?)", [tag]);
+          const insertQuery = "INSERT INTO tags (user_id, name) VALUES ($1, $2)";
+          await pg.query(insertQuery, [userId, tag]);
           result.messages.push(`Tag par défaut ajouté: ${tag}`);
         } catch (error) {
-          if (error.code === 'SQLITE_CONSTRAINT') {
-            result.messages.push(`Erreur: Le tag '${tag}' existe déjà`);
-          } else {
-            throw error;
-          }
+          result.messages.push(`Erreur: Le tag '${tag}' existe déjà`);
         }
       }
       
-      const tagsInDb = await db.all("SELECT name FROM tags ORDER BY name");
-      result.tags_in_db = tagsInDb.map(tag => tag.name);
+      const tagsQuery = "SELECT name FROM tags WHERE user_id = $1 OR user_id IS NULL ORDER BY name";
+      const tagsResult = await pg.query(tagsQuery, [userId]);
+      result.tags_in_db = tagsResult.rows.map(tag => tag.name);
       result.messages.push(`Tags après correction: ${result.tags_in_db.join(', ')}`);
     }
     
     // 2. Vérifier les tags utilisés dans les mots
     const tagsFromWords = new Set();
-    const wordsWithTags = await db.all(
-      "SELECT id, word, tags FROM words WHERE tags IS NOT NULL AND tags != ''"
-    );
+    const wordsQuery = "SELECT id, word, tags FROM words WHERE user_id = $1 AND tags IS NOT NULL AND tags != ''";
+    const wordsResult = await pg.query(wordsQuery, [userId]);
     
-    for (const word of wordsWithTags) {
+    for (const word of wordsResult.rows) {
       if (word.tags) {
         const tags = word.tags.split(',').map(t => t.trim()).filter(t => t);
         result.messages.push(`Mot '${word.word}' (ID: ${word.id}) a les tags: ${tags.join(', ')}`);
@@ -756,19 +868,14 @@ router.get('/debug/check_tags', isLoggedIn, async (req, res) => {
       // Ajouter les tags manquants
       for (const tag of missingTags) {
         try {
-          await db.run("INSERT INTO tags (name) VALUES (?)", [tag]);
+          const insertQuery = "INSERT INTO tags (user_id, name) VALUES ($1, $2)";
+          await pg.query(insertQuery, [userId, tag]);
           result.messages.push(`Tag manquant ajouté: ${tag}`);
         } catch (error) {
-          if (error.code === 'SQLITE_CONSTRAINT') {
-            result.messages.push(`Erreur: Impossible d'ajouter le tag '${tag}'`);
-          } else {
-            throw error;
-          }
+          result.messages.push(`Erreur: Impossible d'ajouter le tag '${tag}'`);
         }
       }
     }
-    
-    await db.close();
     
     // Générer une réponse HTML
     const html = `

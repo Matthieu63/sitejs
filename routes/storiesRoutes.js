@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 const Story = require('../models/Story');
-const Vocab = require('../models/Vocab');
+const { VocabPg: Vocab } = require('../models/VocabPg');
 const UserProgress = require('../models/UserProgress');
 
 // Middleware pour vérifier si l'utilisateur est connecté

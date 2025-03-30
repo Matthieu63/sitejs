@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Vocab = require('../models/Vocab');
+const { VocabPg: Vocab } = require('../models/VocabPg');
 const UserProgress = require('../models/UserProgress');
 const axios = require('axios');
 const multer = require('multer');
