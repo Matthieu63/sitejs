@@ -1,142 +1,135 @@
--- Schéma pour la base de données PostgreSQL
--- Ce schéma unifie toutes les tables pour les modules Vocab, Stories et Dialogues
-
--- Table des utilisateurs
+-- USERS
 CREATE TABLE IF NOT EXISTS users (
-  id SERIAL PRIMARY KEY,
-  username VARCHAR(255) NOT NULL UNIQUE,
-  email VARCHAR(255) NOT NULL UNIQUE,
-  password VARCHAR(255) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(255) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Table pour le vocabulaire
+-- WORDS
 CREATE TABLE IF NOT EXISTS words (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  word VARCHAR(255) NOT NULL,
-  synthese TEXT,
-  youglish TEXT,
-  note INTEGER DEFAULT 0,
-  tags TEXT,
-  image TEXT,
-  exemples TEXT,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP,
-  UNIQUE(user_id, word)
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id),
+    word VARCHAR(255),
+    translation VARCHAR(255),
+    tags TEXT[],
+    context TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Table pour les tags
+-- TAGS
 CREATE TABLE IF NOT EXISTS tags (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-  name VARCHAR(255) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(user_id, name)
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL
 );
 
--- Table pour les fichiers de dialogues
+-- DIALOGUE FILES
 CREATE TABLE IF NOT EXISTS dialogues_files (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  titre TEXT,
-  filename VARCHAR(255) NOT NULL,
-  upload_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  source_type VARCHAR(50),  -- 'pdf', 'youtube', etc.
-  source_url TEXT,          -- URL source si applicable
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    id SERIAL PRIMARY KEY,
+    filename VARCHAR(255),
+    user_id INTEGER REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Table pour les dialogues individuels
+-- DIALOGUES
 CREATE TABLE IF NOT EXISTS dialogues (
-  id SERIAL PRIMARY KEY,
-  file_id INTEGER NOT NULL REFERENCES dialogues_files(id) ON DELETE CASCADE,
-  dialogue_number INTEGER NOT NULL,
-  personne_a TEXT NOT NULL,
-  personne_b TEXT NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    id SERIAL PRIMARY KEY,
+    file_id INTEGER REFERENCES dialogues_files(id),
+    titre VARCHAR(255),
+    user_id INTEGER REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Table pour les histoires
+-- LIGNES
+CREATE TABLE IF NOT EXISTS lignes (
+    id SERIAL PRIMARY KEY,
+    dialogue_id INTEGER REFERENCES dialogues(id),
+    personne VARCHAR(10),
+    texte TEXT,
+    ordre INTEGER,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- STORIES
 CREATE TABLE IF NOT EXISTS stories (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  title VARCHAR(255) NOT NULL,
-  rating INTEGER DEFAULT 0,
-  tags TEXT,
-  theme TEXT,
-  creation_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  words_used TEXT,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    id SERIAL PRIMARY KEY,
+    titre VARCHAR(255),
+    user_id INTEGER REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Table pour les dialogues des histoires
+-- STORIES - DIALOGUES
 CREATE TABLE IF NOT EXISTS stories_dialogues (
-  id SERIAL PRIMARY KEY,
-  story_id INTEGER NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
-  dialogue_number INTEGER NOT NULL,
-  personne_a TEXT NOT NULL,
-  personne_b TEXT NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    story_id INTEGER REFERENCES stories(id),
+    dialogue_id INTEGER REFERENCES dialogues(id),
+    PRIMARY KEY (story_id, dialogue_id)
 );
 
--- Table pour la progression des utilisateurs
+-- USER PROGRESS
 CREATE TABLE IF NOT EXISTS user_progress (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  module VARCHAR(50) NOT NULL,  -- 'espagnol', 'francais', etc.
-  activity VARCHAR(50) NOT NULL, -- 'vocabulaire', 'dialogues', 'histoires', etc.
-  progress INTEGER DEFAULT 0,
-  last_activity TIMESTAMP,
-  stats JSONB,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(user_id, module, activity)
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id),
+    word_id INTEGER REFERENCES words(id),
+    progress INTEGER,
+    updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Table pour les préférences des utilisateurs
+-- USER PREFERENCES
 CREATE TABLE IF NOT EXISTS user_preferences (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  module VARCHAR(50) NOT NULL,
-  preference_key VARCHAR(100) NOT NULL,
-  preference_value TEXT,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(user_id, module, preference_key)
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id),
+    language_preference VARCHAR(50),
+    voice_preference VARCHAR(50),
+    updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Indices pour améliorer les performances
-CREATE INDEX idx_words_user_id ON words(user_id);
-CREATE INDEX idx_words_tags ON words USING gin(to_tsvector('simple', tags));
-CREATE INDEX idx_dialogues_files_user_id ON dialogues_files(user_id);
-CREATE INDEX idx_dialogues_file_id ON dialogues(file_id);
-CREATE INDEX idx_stories_user_id ON stories(user_id);
-CREATE INDEX idx_stories_dialogues_story_id ON stories_dialogues(story_id);
-CREATE INDEX idx_user_progress_user_id ON user_progress(user_id);
-CREATE INDEX idx_user_preferences_user_id ON user_preferences(user_id);
+-- INDEXES
+CREATE INDEX IF NOT EXISTS idx_words_user_id ON words(user_id);
+CREATE INDEX IF NOT EXISTS idx_words_tags ON words USING GIN(tags);
+CREATE INDEX IF NOT EXISTS idx_dialogues_files_user_id ON dialogues_files(user_id);
+CREATE INDEX IF NOT EXISTS idx_dialogues_file_id ON dialogues(file_id);
+CREATE INDEX IF NOT EXISTS idx_stories_user_id ON stories(user_id);
+CREATE INDEX IF NOT EXISTS idx_stories_dialogues_story_id ON stories_dialogues(story_id);
+CREATE INDEX IF NOT EXISTS idx_user_progress_user_id ON user_progress(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_preferences_user_id ON user_preferences(user_id);
 
--- Fonction pour mettre à jour les timestamps automatiquement
+-- FUNCTION (trigger to update modified_at)
 CREATE OR REPLACE FUNCTION update_modified_column()
-RETURNS TRIGGER AS $
+RETURNS TRIGGER AS $$
 BEGIN
-   NEW.updated_at = now(); 
-   RETURN NEW;
+  NEW.updated_at = NOW();
+  RETURN NEW;
 END;
-$ language 'plpgsql';
+$$ LANGUAGE plpgsql;
 
--- Triggers pour mettre à jour les timestamps automatiquement
-CREATE TRIGGER update_words_modtime
-BEFORE UPDATE ON words
-FOR EACH ROW
-EXECUTE PROCEDURE update_modified_column();
+-- TRIGGERS
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'update_user_progress_updated_at'
+  ) THEN
+    CREATE TRIGGER update_user_progress_updated_at
+    BEFORE UPDATE ON user_progress
+    FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+  END IF;
 
-CREATE TRIGGER update_user_progress_modtime
-BEFORE UPDATE ON user_progress
-FOR EACH ROW
-EXECUTE PROCEDURE update_modified_column();
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'update_user_preferences_updated_at'
+  ) THEN
+    CREATE TRIGGER update_user_preferences_updated_at
+    BEFORE UPDATE ON user_preferences
+    FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+  END IF;
 
-CREATE TRIGGER update_user_preferences_modtime
-BEFORE UPDATE ON user_preferences
-FOR EACH ROW
-EXECUTE PROCEDURE update_modified_column();
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'update_words_updated_at'
+  ) THEN
+    CREATE TRIGGER update_words_updated_at
+    BEFORE UPDATE ON words
+    FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+  END IF;
+END;
+$$;
