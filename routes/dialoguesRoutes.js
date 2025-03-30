@@ -39,7 +39,8 @@ router.post("/", upload.single("pdfFile"), async (req, res) => {
   const originalFilename = path.basename(req.file.originalname, path.extname(req.file.originalname));
 
   try {
-    const dialogueId = await DialoguePg.processAndGenerateDialoguesFromPDF(filePath, originalFilename);
+    const userId = req.session.userId;
+    const dialogueId = await DialoguePg.processAndGenerateDialoguesFromPDF(filePath, originalFilename, userId);
     await fs.unlink(filePath); // Supprime le fichier après traitement
     return res.redirect(`/espagnol/dialogues/view/${dialogueId}`);
   } catch (error) {

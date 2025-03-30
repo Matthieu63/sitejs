@@ -1,73 +1,41 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestionnaire de Dialogues</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <%- include('../partials/navbar') %>
-    <style>
-        .file-item {
-            margin-bottom: 10px;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <title>Gestionnaire de Dialogues</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <style>
+    .file-item {
+      margin-bottom: 10px;
+    }
+  </style>
 </head>
-
 <body>
-    <div class="container mt-4">
-        <h1>Gestionnaire de Dialogues</h1>
-        
-        <div class="mt-3 mb-4">
-            <a href="/espagnol/dialogues/youtube" class="btn btn-primary">
-                Utiliser une vidéo YouTube
-            </a>
-        </div>
-        
-        <!-- Messages flash pour les notifications -->
-        <% if (locals.messages && messages.length > 0) { %>
-            <% messages.forEach(function(message) { %>
-                <div class="alert alert-info"><%= message %></div>
-            <% }); %>
-        <% } %>
-        
-        <div class="card mb-4">
-            <div class="card-header">
-                <h3>Envoyer un fichier PDF</h3>
-            </div>
-            <div class="card-body">
-                <form method="post" enctype="multipart/form-data">
-                    <div class="mb-3">
-                        <label for="pdf_file" class="form-label">Fichier PDF (podcast en espagnol)</label>
-                        <input type="file" class="form-control" id="pdf_file" name="pdf_file" accept=".pdf" required>
-                        <div class="form-text text-muted mt-2">
-                            Les dialogues seront générés en utilisant Claude (Anthropic)
-                        </div>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-primary">Envoyer et générer des dialogues</button>
-                </form>
-            </div>
-        </div>
-        
-        <h3>Fichiers traités</h3>
-        <% if (files && files.length > 0) { %>
-            <div class="list-group">
-                <% files.forEach(function(file) { %>
-                    <div class="list-group-item file-item">
-                        <h5><%= file.filename %></h5>
-                        <p class="text-muted">Ajouté le: <%= file.upload_date %></p>
-                        <a href="/espagnol/dialogues/view/<%= file.id %>" class="btn btn-sm btn-outline-primary">Voir les dialogues</a>
-                    </div>
-                <% }); %>
-            </div>
-        <% } else { %>
-            <p>Aucun fichier traité pour le moment.</p>
-        <% } %>
-    </div>
-    
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <%- include('../partials/navbar') %>
+
+  <div class="container mt-5">
+    <h1>Gestionnaire de Dialogues</h1>
+
+    <form action="/espagnol/dialogues" method="POST" enctype="multipart/form-data" class="mb-4">
+      <div class="mb-3">
+        <label for="pdfFile" class="form-label">Téléverser un fichier PDF :</label>
+        <input type="file" name="pdfFile" id="pdfFile" class="form-control" accept="application/pdf" required />
+      </div>
+      <button type="submit" class="btn btn-primary">Générer les dialogues</button>
+    </form>
+
+    <h3>Dialogues générés</h3>
+    <% if (dialogues && dialogues.length > 0) { %>
+      <ul class="list-group">
+        <% dialogues.forEach(function(dialogue) { %>
+          <li class="list-group-item">
+            <a href="/espagnol/dialogues/view/<%= dialogue.id %>"><%= dialogue.titre %></a>
+          </li>
+        <% }) %>
+      </ul>
+    <% } else { %>
+      <p>Aucun dialogue pour le moment.</p>
+    <% } %>
+  </div>
 </body>
 </html>
