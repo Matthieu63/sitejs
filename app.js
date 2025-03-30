@@ -26,7 +26,6 @@ pg.pool.connect()
   .catch(err => console.error('Erreur de connexion à PostgreSQL:', err));
 
 // Importer les routes
-const dbInit = require('./database/dbInit');
 const pollyInit = require('./database/pollyInit');
 const adminRoutes = require('./routes/adminRoutes');
 const vocabRoutes = require('./routes/vocabRoutes');

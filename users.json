@@ -9,3 +9,16 @@
     "data": {}
   }
 }
+
+{
+    "user": {
+      "password": "user",
+      "is_admin": true,
+      "access": {
+        "languages": ["français", "espagnol"],
+        "modules": ["christ", "culture", "recettes"]
+      },
+      "data": {}
+    }
+  }
+  
