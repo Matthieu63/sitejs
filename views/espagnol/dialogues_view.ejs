@@ -11,7 +11,7 @@
 <body class="bg-light">
 
     <div class="container mt-5">
-        <h1 class="text-center mb-4">🎙️ Dialogues générés pour <strong><%= file.filename %></strong></h1>
+        <h1 class="text-center mb-4">🎙️ Dialogues générés pour <strong><%= filename %></strong></h1>
 
         <!-- Configuration des voix -->
         <div class="card shadow mb-4">
@@ -53,9 +53,9 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <% if (dialogues && dialogues.length > 0) { %>
-                                <% dialogues.forEach(function(dialogue) { %>
-                                <tr class="dialogue-row" data-dialogue-id="<%= dialogue.id %>">
+                            <% if (dialogue && dialogue.lignes && dialogue.lignes.length > 0) { %>
+                                <% dialogue.lignes.forEach(function(ligne) { %>
+                                    <tr class="dialogue-row" data-dialogue-id="<%= dialogue.id %>">
                                     <td>
                                         <div class="text-wrap"><%= dialogue.personne_a %></div>
                                     </td>
