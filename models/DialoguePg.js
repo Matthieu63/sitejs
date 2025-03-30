@@ -57,18 +57,20 @@ async function generateDialoguesFromText(text, numDialogues = 3) {
     );
 
     console.log("Réponse Claude : ", JSON.stringify(response.data, null, 2));
-    console.log("Dialogue extrait :", dialogues);
 
-    if (response.data.content && response.data.content.length > 0) {
-      return extractDialoguesFromText(response.data.content[0].text, numDialogues);
-    } else {
-      throw new Error("Format de réponse Claude inattendu");
-    }
-  } catch (error) {
-    console.error('Erreur lors de la génération des dialogues:', error);
-    throw error;
-  }
-}
+    try {
+        if (response.data && response.data.content && response.data.content.length > 0) {
+          const dialogues = extractDialoguesFromText(response.data.content[0].text, numDialogues);
+          console.log("Dialogue extrait :", dialogues);
+          return dialogues;
+        } else {
+          throw new Error("Format de réponse Claude inattendu");
+        }
+      } catch (error) {
+        console.error('Erreur lors de la génération des dialogues:', error);
+        throw error;
+      }
+      
 
 // Fonction pour extraire les dialogues du texte généré
 function extractDialoguesFromText(text, numDialogues) {
@@ -109,14 +111,16 @@ function extractDialoguesFromText(text, numDialogues) {
 
 // Fonction pour extraire le texte d'un PDF
 async function extractTextFromPDF(filePath) {
-  try {
-    const dataBuffer = await fs.readFile(filePath);
-    const data = await pdfParse(dataBuffer);
-} catch (error) {
-    console.error('Erreur lors de l\'extraction du texte du PDF:', error);
-    throw error;
+    try {
+      const dataBuffer = await fs.readFile(filePath);
+      const data = await pdfParse(dataBuffer);
+      return data.text; // ✅ <<< C’est ce qui manquait
+    } catch (error) {
+      console.error('Erreur lors de l\'extraction du texte du PDF:', error);
+      throw error;
+    }
   }
-}
+  
 
 // Fonction pour générer des dialogues à partir d'une vidéo YouTube
 async function generateDialoguesFromYouTube(youtubeUrl, numDialogues = 3) {
