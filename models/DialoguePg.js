@@ -56,6 +56,9 @@ async function generateDialoguesFromText(text, numDialogues = 3) {
       }
     );
 
+    console.log("Réponse Claude : ", JSON.stringify(response.data, null, 2));
+    console.log("Dialogue extrait :", dialogues);
+
     if (response.data.content && response.data.content.length > 0) {
       return extractDialoguesFromText(response.data.content[0].text, numDialogues);
     } else {
@@ -437,8 +440,7 @@ const DialoguePg = {
   generateDialoguesFromYouTube
 };
 
-console.log("Réponse Claude : ", JSON.stringify(response.data, null, 2));
-console.log("Dialogue extrait :", dialogues);
+
 
 
 module.exports = DialoguePg;
