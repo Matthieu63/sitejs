@@ -327,6 +327,7 @@
     });
   </script>
   
+  <!-- Script principal pour le formulaire -->
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       // Initialisation de l'éditeur Quill pour la synthèse
@@ -382,27 +383,11 @@
           })
           .then(data => {
             if (data.status === 'success') {
-              // Afficher un message de succès
-              const successAlert = document.createElement('div');
-              successAlert.className = 'alert alert-success alert-dismissible fade show';
-              successAlert.innerHTML = `
-                <strong>Succès!</strong> Le mot "${wordField.value}" a été ajouté avec succès.
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-              `;
-              form.insertAdjacentElement('beforebegin', successAlert);
+              // Créer un message de succès à passer dans l'URL
+              const wordAdded = encodeURIComponent(wordField.value);
               
-              // Réinitialiser le formulaire
-              form.reset();
-              quillSynthese.setText('');
-              
-              // Réactiver le bouton
-              submitButton.disabled = false;
-              submitButton.innerHTML = '<i class="fas fa-save me-2"></i>Ajouter le mot';
-              
-              // Rediriger vers la liste de vocabulaire après quelques secondes
-              setTimeout(() => {
-                window.location.href = "/espagnol/";
-              }, 2000);
+              // Rediriger vers la page principale avec un paramètre de succès
+              window.location.href = "/espagnol/?success=true&word=" + wordAdded;
             } else {
               console.error('Erreur lors de l\'ajout:', data.message);
               alert('Erreur lors de l\'ajout: ' + (data.message || 'Une erreur est survenue'));
