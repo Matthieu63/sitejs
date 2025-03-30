@@ -29,6 +29,7 @@ const vocabRoutes = require('./routes/vocabRoutes');
 const dialoguesRoutes = require('./routes/dialoguesRoutes');
 const storiesRoutes = require('./routes/storiesRoutes');
 const pollyRoutes = require('./routes/pollyRoutes');
+const flashcardRoutes = require('./routes/flashcardRoutes');
 
 // Initialiser l'application Express
 const app = express();
@@ -44,6 +45,7 @@ app.set('trust proxy', 1);
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(methodOverride('_method'));
+app.use('/espagnol/flashcard', flashcardRoutes);
 
 // Configuration de session - DOIT ÊTRE AVANT flash
 app.use(session({
