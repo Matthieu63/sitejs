@@ -8,12 +8,15 @@ if (!uri) {
 
 const client = new MongoClient(uri);
 
+// On utilise une variable pour stocker la connexion déjà établie
+let dbInstance = null;
+
 async function connect() {
-  if (!client.isConnected()) {
-    await client.connect();
-  }
-  // Remplacez 'polyglot' par le nom de votre base de données si besoin
-  return client.db('polyglot');
+  if (dbInstance) return dbInstance; // Si déjà connecté, retourner l'instance
+  await client.connect();
+  dbInstance = client.db('polyglot'); // Remplacez 'polyglot' par le nom souhaité pour votre base de données
+  console.log("Connecté à MongoDB");
+  return dbInstance;
 }
 
 module.exports = { connect, client };
