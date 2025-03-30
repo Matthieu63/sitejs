@@ -80,9 +80,13 @@ router.get('/', isLoggedIn, async (req, res) => {
     // Rendre la vue avec les données
     res.render('espagnol/vocab', {
       words: result.words,
-      pagination: result.pagination,
-      tags,
-      filters,
+      page: result.pagination.current_page,
+      limit: result.pagination.items_per_page,
+      total_pages: result.pagination.total_pages,
+      tag_filter: filters.tag || '',
+      rating_filter: filters.rating || '',
+      all_tags: tags,
+      available_tags: tags,  // Si c'est la même liste pour les deux usages
       stats,
       progress,
       currentUrl: req.originalUrl.split('?')[0]
