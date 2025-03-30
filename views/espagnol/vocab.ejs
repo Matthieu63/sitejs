@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Base URL pour toutes les URLs relatives -->
+  <base href="/espagnol/">
+  <title>Apprendre l'espagnol</title>
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Quill CSS -->
+  <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts - Roboto -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+  <!-- CSS existant (remplacé par un chemin statique) -->
+  <link rel="stylesheet" href="/static/style.css">
+  
+  <style>
+    :root {
+      --primary-color: #3f51b5;
+      --secondary-color: #ff4081;
+      --background-color: #f8f9fa;
+      --card-bg: #ffffff;
+      --text-color: #333333;
+      --border-radius: 8px;
+      --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: var(--background-color);
+      color: var(--text-color);
+      line-height: 1.6;
+    }
+    .navbar {
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .container-main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .page-title {
+      font-weight: 700;
+      color: var(--primary-color);
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+    /* Vous pouvez ajouter ici d’autres styles issus du fichier d’origine */
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="/">
+        <i class="fas fa-language"></i> Apprendre l'espagnol
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarMain">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a class="nav-link" href="/"><i class="fas fa-book"></i> Vocabulaire</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/flashcard"><i class="fas fa-clone"></i> Flash Cards</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/dialogues"><i class="fas fa-comments"></i> Dialogues</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/stories"><i class="fas fa-book-open"></i> Histoires</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+  
+  <div class="container container-main">
+    <h1 class="page-title"><i class="fas fa-language me-2"></i>Apprendre l'espagnol</h1>
+    
+    <!-- Affichage des messages flash (supposant qu'un tableau "messages" est passé à la vue) -->
+    <% if (typeof messages !== 'undefined' && messages.length > 0) { %>
+      <% messages.forEach(function(msg) { %>
+        <div class="alert alert-<%= msg.category %> mt-3"><%= msg.message %></div>
+      <% }); %>
+    <% } %>
+    
+    <!-- Contenu principal de la page -->
+    <p>Bienvenue sur la page d'apprentissage de l'espagnol. Ici, vous pourrez consulter et gérer votre vocabulaire.</p>
+    <!-- Vous pouvez insérer ici d'autres éléments dynamiques selon vos besoins -->
+    
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
