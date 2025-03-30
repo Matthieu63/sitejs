@@ -44,7 +44,6 @@ app.set('trust proxy', 1);
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(methodOverride('_method'));
-app.use(express.static(path.join(__dirname, 'public')));
 
 // Configuration de session - DOIT ÊTRE AVANT flash
 app.use(session({
