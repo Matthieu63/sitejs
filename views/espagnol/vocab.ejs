@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- Google Fonts - Roboto -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
-  <!-- CSS existant (remplacé par un chemin statique) -->
+  <!-- CSS existant -->
   <link rel="stylesheet" href="/static/style.css">
   
   <style>
@@ -47,7 +47,140 @@
       margin-bottom: 1.5rem;
       text-align: center;
     }
-    /* Vous pouvez ajouter ici d’autres styles issus du fichier d’origine */
+    /* Cards */
+    .card-custom {
+      background-color: var(--card-bg);
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      margin-bottom: 20px;
+      border: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card-custom:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+    .card-header-custom {
+      background-color: rgba(63, 81, 181, 0.05);
+      border-bottom: 1px solid #eee;
+      padding: 15px 20px;
+      border-radius: var(--border-radius) var(--border-radius) 0 0;
+    }
+    .card-body-custom {
+      padding: 20px;
+    }
+    /* Boutons */
+    .btn-custom-primary {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 16px;
+      font-weight: 500;
+      transition: all 0.3s;
+    }
+    .btn-custom-primary:hover {
+      background-color: #303f9f;
+      transform: translateY(-2px);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+    .btn-custom-secondary {
+      background-color: var(--secondary-color);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 16px;
+      font-weight: 500;
+      transition: all 0.3s;
+    }
+    .btn-custom-secondary:hover {
+      background-color: #e91e63;
+      transform: translateY(-2px);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+    /* Tags */
+    .tag-custom {
+      display: inline-block;
+      background-color: #f1f3f9;
+      color: var(--primary-color);
+      padding: 5px 12px;
+      margin: 3px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      transition: all 0.3s;
+      text-decoration: none;
+    }
+    .tag-custom:hover,
+    .tag-custom.active {
+      background-color: var(--primary-color);
+      color: white;
+    }
+    /* Tables */
+    .table-custom {
+      width: 100%;
+      border-collapse: collapse;
+      border-radius: var(--border-radius);
+      overflow: hidden;
+      background-color: white;
+      box-shadow: var(--box-shadow);
+    }
+    .table-custom th {
+      background-color: rgba(63, 81, 181, 0.1);
+      color: var(--primary-color);
+      padding: 15px;
+      text-align: left;
+      font-weight: 600;
+    }
+    .table-custom td {
+      padding: 12px 15px;
+      border-top: 1px solid #eee;
+      vertical-align: middle;
+    }
+    .table-custom tr:hover {
+      background-color: rgba(63, 81, 181, 0.05);
+    }
+    /* Pagination */
+    .pagination-custom {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin: 30px 0;
+    }
+    .pagination-custom a, .pagination-custom span {
+      display: inline-block;
+      margin: 0 5px;
+      padding: 8px 12px;
+      color: var(--primary-color);
+      background-color: white;
+      border-radius: 4px;
+      text-decoration: none;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s;
+    }
+    .pagination-custom a:hover {
+      background-color: var(--primary-color);
+      color: white;
+    }
+    .pagination-custom span {
+      background-color: var(--primary-color);
+      color: white;
+      font-weight: bold;
+    }
+    /* Footer */
+    .footer-custom {
+      background-color: #f1f1f1;
+      padding: 30px 0;
+      margin-top: 50px;
+      color: #666;
+    }
+    .footer-custom a {
+      color: #666;
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+    .footer-custom a:hover {
+      color: var(--primary-color);
+    }
   </style>
 </head>
 <body>
@@ -82,19 +215,148 @@
   <div class="container container-main">
     <h1 class="page-title"><i class="fas fa-language me-2"></i>Apprendre l'espagnol</h1>
     
-    <!-- Affichage des messages flash (supposant qu'un tableau "messages" est passé à la vue) -->
-    <% if (typeof messages !== 'undefined' && messages.length > 0) { %>
+    <!-- Bloc pour afficher les messages flash -->
+    <% if (messages && messages.length > 0) { %>
       <% messages.forEach(function(msg) { %>
-        <div class="alert alert-<%= msg.category %> mt-3"><%= msg.message %></div>
+        <div class="alert alert-<%= msg.category %> mt-3">
+          <%= msg.message %>
+        </div>
       <% }); %>
     <% } %>
     
-    <!-- Contenu principal de la page -->
-    <p>Bienvenue sur la page d'apprentissage de l'espagnol. Ici, vous pourrez consulter et gérer votre vocabulaire.</p>
-    <!-- Vous pouvez insérer ici d'autres éléments dynamiques selon vos besoins -->
+    <!-- Section des actions principales -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <a href="/bulk_add" class="btn btn-custom-primary">
+        <i class="fas fa-plus-circle me-2"></i>Ajouter plusieurs mots
+      </a>
+      <a href="/admin/tags" class="btn btn-custom-secondary">
+        <i class="fas fa-tags me-2"></i>Gérer les tags
+      </a>
+    </div>
     
+    <!-- Navigation par onglets -->
+    <ul class="nav nav-tabs mb-4" id="mainTab" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="vocabulary-tab" data-bs-toggle="tab" data-bs-target="#vocabulary" type="button" role="tab" aria-controls="vocabulary" aria-selected="true">
+          <i class="fas fa-list me-2"></i>Liste de vocabulaire
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="add-word-tab" data-bs-toggle="tab" data-bs-target="#add-word" type="button" role="tab" aria-controls="add-word" aria-selected="false">
+          <i class="fas fa-plus me-2"></i>Ajouter un mot
+        </button>
+      </li>
+    </ul>
+    
+    <div class="tab-content" id="mainTabContent">
+      <!-- Onglet Liste de vocabulaire -->
+      <div class="tab-pane fade show active" id="vocabulary" role="tabpanel" aria-labelledby="vocabulary-tab">
+        <!-- Ici vous pourrez afficher le tableau du vocabulaire (par exemple via une boucle EJS sur "words") -->
+        <% if (words && words.length > 0) { %>
+          <table class="table-custom">
+            <thead>
+              <tr>
+                <th>Mot</th>
+                <th>Synthèse</th>
+                <th>Image</th>
+                <th>Youglish</th>
+                <th>Tags</th>
+                <th>Note</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% words.forEach(function(word) { %>
+                <tr data-id="<%= word.id %>">
+                  <td><%= word.word %></td>
+                  <td><%= word.synthese %></td>
+                  <td>
+                    <% if (word.image) { %>
+                      <img src="<%= word.image %>" alt="Image de <%= word.word %>" style="max-width:50px;">
+                    <% } else { %>
+                      <i class="fa-solid fa-image text-muted"></i>
+                    <% } %>
+                  </td>
+                  <td>
+                    <a href="javascript:void(0);" onclick="window.open('<%= word.youglish %>', '', 'width=800,height=600');" class="btn btn-sm btn-outline-primary">
+                      <i class="fa-solid fa-globe"></i>
+                    </a>
+                  </td>
+                  <td><%= word.tags %></td>
+                  <td>
+                    <div class="star-rating-custom" data-id="<%= word.id %>">
+                      <% for (var i = 1; i <= 4; i++) { %>
+                        <span class="star<%= (i <= word.note ? ' selected' : '') %>" data-value="<%= i %>">★</span>
+                      <% } %>
+                    </div>
+                  </td>
+                  <td>
+                    <button class="action-btn delete" data-id="<%= word.id %>">
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+          
+          <!-- Pagination -->
+          <div class="pagination-custom mt-4">
+            <% if (page > 1) { %>
+              <a href="/?page=1&limit=<%= limit %>">«</a>
+              <a href="/?page=<%= page - 1 %>&limit=<%= limit %>">‹</a>
+            <% } %>
+            <span>Page <%= page %> / <%= total_pages %></span>
+            <% if (page < total_pages) { %>
+              <a href="/?page=<%= page + 1 %>&limit=<%= limit %>">›</a>
+              <a href="/?page=<%= total_pages %>&limit=<%= limit %>">»</a>
+            <% } %>
+          </div>
+        <% } else { %>
+          <p>Aucun mot trouvé.</p>
+        <% } %>
+      </div>
+      
+      <!-- Onglet Ajouter un mot -->
+      <div class="tab-pane fade" id="add-word" role="tabpanel" aria-labelledby="add-word-tab">
+        <!-- Vous pouvez inclure ici un formulaire similaire à votre ancien add_word.html, converti en EJS -->
+        <form id="add-word-form" action="/add" method="post" enctype="multipart/form-data">
+          <div class="mb-3">
+            <label for="word" class="form-label">Mot :</label>
+            <input type="text" id="word" name="word" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label for="synthese" class="form-label">Synthèse :</label>
+            <textarea id="synthese" name="synthese" class="form-control"></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="youglish" class="form-label">Lien Youglish :</label>
+            <input type="url" id="youglish" name="youglish" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label for="tags" class="form-label">Tags :</label>
+            <select id="tags" name="tags" multiple class="form-select">
+              <% if (available_tags) { %>
+                <% available_tags.forEach(function(tag) { %>
+                  <option value="<%= tag %>"><%= tag %></option>
+                <% }); %>
+              <% } %>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="image" class="form-label">Image :</label>
+            <input type="file" id="image" name="image" accept="image/*" class="form-control">
+          </div>
+          <button type="submit" class="btn btn-custom-primary">
+            <i class="fas fa-save me-2"></i>Ajouter le mot
+          </button>
+        </form>
+      </div>
+    </div>
   </div>
   
+  <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Vous pouvez ajouter ici vos scripts personnalisés -->
 </body>
 </html>
