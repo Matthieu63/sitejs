@@ -445,6 +445,4 @@ const DialoguePg = {
 };
 
 
-
-
-module.exports = DialoguePg;
+module.exports = DialoguePg; // ✅ Fin propre
