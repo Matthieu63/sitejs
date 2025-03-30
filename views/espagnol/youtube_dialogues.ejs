@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Générer des dialogues depuis YouTube</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <%- include('../partials/navbar') %>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Générer des dialogues depuis YouTube</h1>
+        
+        <!-- Messages flash pour les notifications -->
+        <% if (locals.messages && messages.length > 0) { %>
+            <% messages.forEach(function(message) { %>
+                <div class="alert alert-info"><%= message %></div>
+            <% }); %>
+        <% } %>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3>Saisir une URL YouTube</h3>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-3">
+                        <label for="youtube_url" class="form-label">URL de la vidéo YouTube (en espagnol)</label>
+                        <input type="url" class="form-control" id="youtube_url" name="youtube_url" placeholder="https://www.youtube.com/watch?v=..." required>
+                        <div class="form-text text-muted mt-2">
+                            Les dialogues seront générés en utilisant Claude (Anthropic)
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Extraire et générer des dialogues</button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="text-center mt-4">
+            <a href="/espagnol/dialogues" class="btn btn-secondary">⬅️ Retour à la liste des dialogues</a>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

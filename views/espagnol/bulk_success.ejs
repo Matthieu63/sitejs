@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ajout réussi</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <%- include('../partials/navbar') %>
+  <style>
+    body {
+      background-color: #f8f9fa;
+      text-align: center;
+      padding-top: 50px;
+    }
+    .confirmation-box {
+      max-width: 500px;
+      margin: auto;
+      padding: 30px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    .confirmation-box h1 {
+      font-size: 24px;
+      color: #28a745;
+    }
+    .confirmation-box p {
+      font-size: 18px;
+      color: #333;
+    }
+    .btn-primary {
+      margin-top: 20px;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="confirmation-box">
+    <h1>✅ Ajout Réussi !</h1>
+    <p><%= words_count %> mots ont été ajoutés avec succès.</p>
+
+    <a href="/" class="btn btn-primary">🏠 Retour à l'accueil</a>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>
