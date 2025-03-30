@@ -2,17 +2,97 @@
 const db = require('../config/postgres');
 const axios = require('axios');
 
-// Reprendre les fonctions utilitaires de votre Vocab.js
+// Fonctions utilitaires pour la génération de contenu
 async function generateSynthese(word) {
-  // Copiez la fonction de votre fichier Vocab.js
+  try {
+    const prompt = (
+      `Est-ce que le mot '${word}' est fréquemment utilisé ? Si oui, explique pour quels usages, ` +
+      "avec plusieurs phrases exemples en espagnol (sans traduction). " +
+      "Puis, à la fin, liste 'synonymes :' suivi des synonymes et 'antonymes :' suivi des antonymes."
+    );
+
+    const apiKey = process.env.CLAUDE_API_KEY;
+    if (!apiKey) {
+      throw new Error("Clé API Claude manquante dans les variables d'environnement");
+    }
+
+    const response = await axios.post(
+      "https://api.anthropic.com/v1/messages",
+      {
+        model: "claude-3-5-sonnet-20241022",
+        max_tokens: 512,
+        messages: [{ role: "user", content: prompt }]
+      },
+      {
+        headers: {
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json"
+        }
+      }
+    );
+
+    let rawText = "";
+    if (response.data.content && response.data.content.length > 0) {
+      rawText = response.data.content[0].text.trim();
+    } else {
+      console.error("[ERROR] Format de réponse Claude inattendu:", response.data);
+      return "<em>Pas de synthèse générée par Claude.</em>";
+    }
+
+    if (!rawText) {
+      return "<em>Pas de synthèse générée par Claude.</em>";
+    }
+    return formatResponseText(rawText);
+  } catch (error) {
+    console.error("[ERROR] Erreur lors de la génération de la synthèse:", error);
+    return `<em>Erreur lors de la génération de la synthèse: ${error.message}</em>`;
+  }
 }
 
 function formatResponseText(text) {
-  // Copiez la fonction de votre fichier Vocab.js
+  const paragraphs = text.split("\n\n");
+  const formattedParagraphs = paragraphs
+    .map(p => {
+      p = p.replace(/\n/g, "<br>");
+      return p.trim() ? `<p>${p.trim()}</p>` : "";
+    })
+    .filter(p => p.length > 0);
+  return formattedParagraphs.join("\n");
 }
 
 async function generateImage(word) {
-  // Copiez la fonction de votre fichier Vocab.js
+  try {
+    const prompt = `Crée moi une image qui illustre le mieux pour toi le mot ${word} selon les usages courants.`;
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error("Clé API OpenAI manquante dans les variables d'environnement");
+    }
+
+    const response = await axios.post(
+      "https://api.openai.com/v1/images/generations",
+      {
+        model: "dall-e-3",
+        prompt: prompt,
+        n: 1,
+        size: "1024x1024"
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        }
+      }
+    );
+
+    if (response.data && response.data.data && response.data.data.length > 0) {
+      return response.data.data[0].url || "";
+    }
+    return "";
+  } catch (error) {
+    console.error("[ERROR] Erreur lors de la génération de l'image:", error);
+    return "";
+  }
 }
 
 const VocabPg = {
@@ -140,6 +220,24 @@ const VocabPg = {
     const query = "SELECT * FROM words WHERE user_id = $1 AND LOWER(word) = LOWER($2)";
     const result = await db.query(query, [userId, word]);
     return result.rows.length > 0 ? { status: "duplicate", word: result.rows[0] } : { status: "ok" };
+  },
+
+  /**
+   * Vérifie si plusieurs mots existent déjà pour un utilisateur.
+   */
+  async checkDuplicatesBulk(words, userId) {
+    if (!Array.isArray(words) || words.length === 0) {
+      return { duplicates: [] };
+    }
+    
+    const placeholders = words.map((_, idx) => `$${idx + 2}`).join(',');
+    const query = `SELECT word FROM words WHERE user_id = $1 AND LOWER(word) IN (${placeholders})`;
+    const params = [userId, ...words.map(w => w.toLowerCase())];
+    
+    const result = await db.query(query, params);
+    return {
+      duplicates: result.rows.map(row => row.word)
+    };
   },
 
   /**
