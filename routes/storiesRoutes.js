@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const axios = require('axios');
-const Story = require('../models/Story');
-const { VocabPg: Vocab } = require('../models/VocabPg');
+const StoryPg = require('../models/StoryPg');
+const { VocabPg } = require('../models/VocabPg');
 const UserProgress = require('../models/UserProgress');
 
 // Middleware pour vérifier si l'utilisateur est connecté
@@ -13,134 +12,13 @@ function isLoggedIn(req, res, next) {
   next();
 }
 
-// Fonction pour générer une histoire avec des mots
-async function generateStory(words, theme) {
-  try {
-    // Limiter le nombre de mots à utiliser
-    let selectedWords = words;
-    if (words.length > 75) {
-      selectedWords = [...words].sort(() => 0.5 - Math.random()).slice(0, 75);
-    }
-    
-    // Extraire les mots en texte simple
-    const wordsList = selectedWords.map(word => word.word);
-    
-    // Diviser les mots en deux groupes pour les deux dialogues
-    const wordsGroup1 = wordsList.slice(0, Math.ceil(wordsList.length / 2));
-    const wordsGroup2 = wordsList.slice(Math.ceil(wordsList.length / 2));
-    
-    const group1Text = wordsGroup1.join(', ');
-    const group2Text = wordsGroup2.join(', ');
-    
-    // Utiliser l'API Claude pour générer l'histoire
-    const apiKey = process.env.CLAUDE_API_KEY;
-    if (!apiKey) {
-      throw new Error('Clé API Claude manquante');
-    }
-    
-    const prompt = `
-      Por favor, crea exactamente 2 diálogos narrativos, naturales y coherentes en español, que simulen una conversación real entre dos personas.
-
-      INSTRUCCIONES IMPORTANTES:
-      1. Utiliza exclusivamente las etiquetas 'Personne A:' y 'Personne B:' (no uses nombres propios).
-      2. Cada intervención debe consistir en 4 a 5 frases completas, descriptivas y naturales, sin limitarse a un número fijo de palabras por frase.
-      3. Cada frase debe terminar con un punto u otro signo de puntuación apropiado.
-      4. No escribas frases incompletas ni uses 'etc.' o '...'.
-      5. Incorpora de forma coherente el tema y las siguientes palabras clave obligatorias, pero utiliza también otras palabras que enriquezcan la narrativa y permitan transiciones lógicas entre las ideas.
-      6. Si las palabras clave son verbos, conjúgalos correctamente según el contexto, y ajusta el género de los sustantivos o adjetivos para que la conversación sea natural.
-      7. El diálogo debe parecer una conversación real: incluye preguntas, respuestas, comentarios espontáneos, interjecciones y transiciones naturales.
-      8. El tema es: ${theme}
-
-      Para el PRIMER diálogo, integra obligatoriamente las siguientes palabras clave: ${group1Text}
-      Para el SEGUNDO diálogo, integra obligatoriamente las siguientes palabras clave: ${group2Text}
-
-      FORMATO EXACTO A SEGUIR:
-
-      Dialogue 1:
-      Personne A: [Frase 1. Frase 2. Frase 3. Frase 4.]
-      Personne B: [Frase 1. Frase 2. Frase 3. Frase 4.]
-      FIN DIALOGUE 1
-
-      Dialogue 2:
-      Personne A: [Frase 1. Frase 2. Frase 3. Frase 4.]
-      Personne B: [Frase 1. Frase 2. Frase 3. Frase 4.]
-      FIN DIALOGUE 2
-
-      Asegúrate de que ambos diálogos estén completos, sean coherentes, parezcan una conversación real y no se corten.
-    `;
-    
-    const response = await axios.post(
-      'https://api.anthropic.com/v1/messages',
-      {
-        model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 2000,
-        temperature: 0.7,
-        messages: [{ role: 'user', content: prompt }]
-      },
-      {
-        headers: {
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json'
-        }
-      }
-    );
-    
-    if (response.status === 200 && response.data.content && response.data.content[0]) {
-      return { storyText: response.data.content[0].text, wordsUsed: wordsList };
-    } else {
-      throw new Error(`Erreur API Claude: ${response.status}`);
-    }
-  } catch (error) {
-    console.error('Erreur lors de la génération de l\'histoire:', error);
-    throw error;
-  }
-}
-
-// Fonction pour extraire les dialogues d'une histoire
-function extractDialoguesFromStory(storyText) {
-  const dialogues = [];
-  
-  for (let i = 1; i <= 2; i++) {
-    const pattern = new RegExp(`Dialogue\\s+${i}:\\s*(.*?)\\s*FIN DIALOGUE ${i}`, 's');
-    const match = pattern.exec(storyText);
-    
-    if (match) {
-      const dialogueContent = match[1].trim();
-      const personneAMatch = /Personne\s+A:\s*(.*?)(?=Personne\s+B:)/s.exec(dialogueContent);
-      const personneBMatch = /Personne\s+B:\s*(.*?)(?=$)/s.exec(dialogueContent);
-      
-      if (personneAMatch && personneBMatch) {
-        dialogues.push({
-          personne_a: personneAMatch[1].trim(),
-          personne_b: personneBMatch[1].trim()
-        });
-      } else {
-        // Si la structure n'est pas reconnue, utiliser un dialogue par défaut
-        dialogues.push({
-          personne_a: "Lo siento, hubo un problema al generar este diálogo.",
-          personne_b: "Por favor, inténtalo de nuevo."
-        });
-      }
-    } else {
-      // Si le dialogue n'est pas trouvé, utiliser un dialogue par défaut
-      dialogues.push({
-        personne_a: "Lo siento, hubo un problema al generar este diálogo.",
-        personne_b: "Por favor, inténtalo de nuevo."
-      });
-    }
-  }
-  
-  return dialogues;
-}
-
 // Route principale pour afficher la liste des histoires
 router.get('/', isLoggedIn, async (req, res) => {
   try {
     const userId = req.session.user;
     
     // Récupérer toutes les histoires de l'utilisateur
-    const stories = await Story.getAllStories(userId);
+    const stories = await StoryPg.getAllStories(userId);
     
     // Récupérer la progression de l'utilisateur
     const progress = await UserProgress.getProgress(userId, 'espagnol', 'histoires');
@@ -153,10 +31,16 @@ router.get('/', isLoggedIn, async (req, res) => {
       }
     });
     
-    res.render('espagnol/stories_index', { stories, progress });
+    // Récupérer les messages flash si disponibles
+    const messages = req.flash ? req.flash() : [];
+    
+    res.render('espagnol/stories_index', { stories, progress, messages });
   } catch (error) {
     console.error('Erreur lors de l\'affichage des histoires:', error);
-    res.status(500).send('Erreur serveur');
+    if (req.flash) {
+      req.flash('error', 'Erreur lors du chargement des histoires');
+    }
+    res.status(500).render('error', { message: 'Erreur serveur', error });
   }
 });
 
@@ -166,38 +50,45 @@ router.get('/create', isLoggedIn, async (req, res) => {
     const userId = req.session.user;
     
     // Récupérer tous les tags de l'utilisateur
-    const tags = await Vocab.getAllTags(userId);
+    const tags = await VocabPg.getAllTags(userId);
     
-    res.render('espagnol/stories_create', { available_tags: tags });
+    // Récupérer les messages flash si disponibles
+    const messages = req.flash ? req.flash() : [];
+    
+    res.render('espagnol/stories_create', { available_tags: tags, messages });
   } catch (error) {
     console.error('Erreur lors de l\'affichage du formulaire de création:', error);
-    res.status(500).send('Erreur serveur');
+    if (req.flash) {
+      req.flash('error', 'Erreur lors du chargement du formulaire');
+    }
+    res.status(500).render('error', { message: 'Erreur serveur', error });
   }
 });
 
-// Route pour créer une nouvelle histoire
+// Route pour créer une nouvelle histoire (traitement du formulaire)
 router.post('/create', isLoggedIn, async (req, res) => {
   try {
     const userId = req.session.user;
     const { title, theme, tags, rating } = req.body;
     
+    // Vérification du titre
     if (!title) {
       return res.status(400).json({ status: 'error', message: 'Le titre est requis' });
     }
     
     // Récupérer les mots filtrés pour l'histoire
     const selectedTags = Array.isArray(tags) ? tags : tags ? [tags] : [];
-    const filteredWords = await Story.getFilteredWords(userId, selectedTags, rating);
+    const filteredWords = await StoryPg.getFilteredWords(userId, selectedTags, rating);
     
     if (filteredWords.length === 0) {
       return res.status(400).json({ status: 'error', message: 'Aucun mot ne correspond aux critères' });
     }
     
-    // Générer l'histoire
-    const { storyText, wordsUsed } = await generateStory(filteredWords, theme || 'Un jour ordinaire');
+    // Générer l'histoire avec Claude
+    const { storyText, wordsUsed } = await StoryPg.generateStoryWithClaude(filteredWords, theme || 'Un jour ordinaire');
     
-    // Extraire les dialogues
-    const dialogues = extractDialoguesFromStory(storyText);
+    // Extraire les dialogues de l'histoire
+    const dialogues = StoryPg.extractDialoguesFromStory(storyText);
     
     // Créer l'histoire en base de données
     const storyData = {
@@ -210,7 +101,7 @@ router.post('/create', isLoggedIn, async (req, res) => {
       dialogues
     };
     
-    const result = await Story.addStory(userId, storyData);
+    const result = await StoryPg.addStory(userId, storyData);
     
     // Mettre à jour la progression de l'utilisateur
     await UserProgress.updateProgress(userId, 'espagnol', 'histoires', {
@@ -235,19 +126,23 @@ router.post('/create', isLoggedIn, async (req, res) => {
   }
 });
 
-// Route pour afficher une histoire
+// Route pour afficher une histoire spécifique
 router.get('/view/:storyId', isLoggedIn, async (req, res) => {
   try {
     const userId = req.session.user;
     const storyId = req.params.storyId;
     
-    // Récupérer l'histoire et ses dialogues
-    const story = await Story.getStoryById(storyId, userId);
+    // Récupérer l'histoire
+    const story = await StoryPg.getStoryById(storyId, userId);
     if (!story) {
-      return res.status(404).send('Histoire non trouvée');
+      if (req.flash) {
+        req.flash('error', 'Histoire non trouvée');
+      }
+      return res.redirect('/espagnol/stories');
     }
     
-    const dialogues = await Story.getDialoguesByStoryId(storyId, userId);
+    // Récupérer les dialogues associés
+    const dialogues = await StoryPg.getDialoguesByStoryId(storyId, userId);
     
     // Mettre à jour l'activité de l'utilisateur
     await UserProgress.updateProgress(userId, 'espagnol', 'histoires', {
@@ -257,27 +152,33 @@ router.get('/view/:storyId', isLoggedIn, async (req, res) => {
       }
     });
     
-    res.render('espagnol/stories_view', { story, dialogues });
+    // Récupérer les messages flash si disponibles
+    const messages = req.flash ? req.flash() : [];
+    
+    res.render('espagnol/stories_view', { story, dialogues, messages });
   } catch (error) {
     console.error('Erreur lors de l\'affichage de l\'histoire:', error);
-    res.status(500).send('Erreur serveur');
+    if (req.flash) {
+      req.flash('error', 'Erreur lors du chargement de l\'histoire');
+    }
+    res.status(500).render('error', { message: 'Erreur serveur', error });
   }
 });
 
 // Route pour supprimer une histoire
-router.delete('/delete/:storyId', isLoggedIn, async (req, res) => {
+router.post('/delete/:storyId', isLoggedIn, async (req, res) => {
   try {
     const userId = req.session.user;
     const storyId = req.params.storyId;
     
     // Récupérer l'histoire pour l'historique
-    const story = await Story.getStoryById(storyId, userId);
+    const story = await StoryPg.getStoryById(storyId, userId);
     if (!story) {
-      return res.status(404).json({ status: 'error', message: 'Histoire non trouvée' });
+      return res.json({ status: 'error', message: 'Histoire non trouvée' });
     }
     
-    // Supprimer l'histoire et ses dialogues
-    const result = await Story.deleteStory(storyId, userId);
+    // Supprimer l'histoire
+    const result = await StoryPg.deleteStory(storyId, userId);
     
     // Mettre à jour la progression de l'utilisateur
     await UserProgress.updateProgress(userId, 'espagnol', 'histoires', {
@@ -300,7 +201,7 @@ router.get('/stats', isLoggedIn, async (req, res) => {
     const userId = req.session.user;
     
     // Récupérer les statistiques
-    const stats = await Story.getStats(userId);
+    const stats = await StoryPg.getStats(userId);
     
     res.json({
       status: 'success',
@@ -336,7 +237,7 @@ router.post('/custom', isLoggedIn, async (req, res) => {
       dialogues: formattedDialogues
     };
     
-    const result = await Story.addStory(userId, storyData);
+    const result = await StoryPg.addStory(userId, storyData);
     
     // Mettre à jour la progression de l'utilisateur
     await UserProgress.updateProgress(userId, 'espagnol', 'histoires', {
@@ -368,7 +269,7 @@ router.get('/words/:storyId', isLoggedIn, async (req, res) => {
     const storyId = req.params.storyId;
     
     // Récupérer l'histoire
-    const story = await Story.getStoryById(storyId, userId);
+    const story = await StoryPg.getStoryById(storyId, userId);
     if (!story) {
       return res.status(404).json({ status: 'error', message: 'Histoire non trouvée' });
     }
@@ -379,26 +280,32 @@ router.get('/words/:storyId', isLoggedIn, async (req, res) => {
     // Récupérer les détails des mots depuis le vocabulaire de l'utilisateur
     const wordDetails = [];
     
-    for (const word of wordsUsed) {
-      try {
-        // Rechercher le mot dans le vocabulaire
-        const vocabDb = db.getDB();
-        const wordData = await db.getRow(
-          vocabDb,
-          'SELECT * FROM words WHERE user_id = ? AND word = ?',
-          [userId, word]
-        );
-        vocabDb.close();
-        
-        if (wordData) {
-          wordDetails.push(wordData);
+    if (wordsUsed.length > 0) {
+      // Créer une chaîne de paramètres placeholders pour la requête SQL
+      const placeholders = wordsUsed.map((_, idx) => `$${idx + 2}`).join(',');
+      const query = `SELECT * FROM words WHERE user_id = $1 AND word IN (${placeholders})`;
+      const params = [userId, ...wordsUsed];
+      
+      const db = require('../config/postgres');
+      const result = await db.query(query, params);
+      
+      // Ajouter les mots trouvés aux détails
+      const foundWords = result.rows;
+      const foundWordsMap = {};
+      
+      foundWords.forEach(word => {
+        foundWordsMap[word.word.toLowerCase()] = word;
+      });
+      
+      // Ajouter tous les mots, même ceux qui n'ont pas été trouvés dans la base
+      wordsUsed.forEach(word => {
+        const wordLower = word.toLowerCase();
+        if (foundWordsMap[wordLower]) {
+          wordDetails.push({ ...foundWordsMap[wordLower], found: true });
         } else {
-          // Si le mot n'est pas trouvé, ajouter une version simplifiée
           wordDetails.push({ word, found: false });
         }
-      } catch (error) {
-        console.error(`Erreur lors de la récupération du mot ${word}:`, error);
-      }
+      });
     }
     
     res.json({
