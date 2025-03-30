@@ -21,9 +21,10 @@ router.get("/", async (req, res) => {
 
 // Voir un dialogue spécifique
 router.get("/view/:id", async (req, res) => {
-  const userId = req.session.userId; // ou req.user.id selon ton auth
-  const dialogueId = await DialoguePg.processAndGenerateDialoguesFromPDF(filePath, originalFilename, userId);
-    try {
+  const userId = req.session.userId;
+  const dialogueId = req.params.id;
+
+  try {
     const dialogue = await DialoguePg.getDialogueById(dialogueId);
     if (!dialogue) return res.status(404).send("Dialogue introuvable");
     res.render("espagnol/dialogues_view", { dialogue });
