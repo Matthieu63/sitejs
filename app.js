@@ -45,7 +45,7 @@ app.set('trust proxy', 1);
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(methodOverride('_method'));
-app.use('/espagnol/flashcard', flashcardRoutes);
+
 
 // Configuration de session - DOIT ÊTRE AVANT flash
 app.use(session({
@@ -160,7 +160,9 @@ app.use('/admin', adminRoutes);
 app.use('/espagnol', vocabRoutes);
 app.use('/espagnol/dialogues', dialoguesRoutes);
 app.use('/espagnol/stories', storiesRoutes);
-app.use('/espagnol/api/polly', pollyRoutes);
+app.use('/espagnol/api', pollyRoutes);
+app.use('/espagnol/flashcard', flashcardRoutes);
+
 
 // Route principale
 app.get('/', (req, res) => {
