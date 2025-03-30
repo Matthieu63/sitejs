@@ -70,7 +70,7 @@ async function generateDialoguesFromText(text, numDialogues = 3) {
         console.error('Erreur lors de la génération des dialogues:', error);
         throw error;
       }
-      
+    }
 
 // Fonction pour extraire les dialogues du texte généré
 function extractDialoguesFromText(text, numDialogues) {
