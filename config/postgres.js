@@ -19,5 +19,6 @@ pool.connect()
 
 module.exports = {
   query: (text, params) => pool.query(text, params),
-  pool
+  pool,
+  getClient: () => pool.connect() // ✅ Ajouté pour compatibilité avec DialoguePg.js et StoryPg.js
 };
