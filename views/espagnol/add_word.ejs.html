@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Base URL pour toutes les URLs relatives -->
+  <base href="/espagnol/">
+  <title>Ajouter un mot - Espagnol</title>
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Quill CSS -->
+  <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts - Roboto -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+  <!-- CSS existant -->
+  <link rel="stylesheet" href="/static/style.css">
+ 
+  <style>
+    :root {
+      --primary-color: #3f51b5;
+      --secondary-color: #ff4081;
+      --background-color: #f8f9fa;
+      --card-bg: #ffffff;
+      --text-color: #333333;
+      --border-radius: 8px;
+      --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: var(--background-color);
+      color: var(--text-color);
+      line-height: 1.6;
+    }
+    
+    .navbar {
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .container-main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .page-title {
+      font-weight: 700;
+      color: var(--primary-color);
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+    
+    /* Cards */
+    .card-custom {
+      background-color: var(--card-bg);
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      margin-bottom: 20px;
+      border: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .card-custom:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .card-header-custom {
+      background-color: rgba(63, 81, 181, 0.05);
+      border-bottom: 1px solid #eee;
+      padding: 15px 20px;
+      border-radius: var(--border-radius) var(--border-radius) 0 0;
+    }
+    
+    .card-body-custom {
+      padding: 20px;
+    }
+    
+    /* Buttons */
+    .btn-custom-primary {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 16px;
+      font-weight: 500;
+      transition: all 0.3s;
+    }
+    
+    .btn-custom-primary:hover {
+      background-color: #303f9f;
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+    
+    .btn-custom-secondary {
+      background-color: var(--secondary-color);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 16px;
+      font-weight: 500;
+      transition: all 0.3s;
+    }
+    
+    .btn-custom-secondary:hover {
+      background-color: #e91e63;
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Forms */
+    .form-group-custom {
+      margin-bottom: 20px;
+    }
+    
+    .form-control-custom {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      font-size: 1rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    
+    .form-control-custom:focus {
+      border-color: var(--primary-color);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(63, 81, 181, 0.2);
+    }
+    
+    /* Footer */
+    .footer-custom {
+      background-color: #f1f1f1;
+      padding: 30px 0;
+      margin-top: 50px;
+      color: #666;
+    }
+    
+    .footer-custom a {
+      color: #666;
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+    
+    .footer-custom a:hover {
+      color: var(--primary-color);
+    }
+    
+    /* Ensure the editor has a minimum height */
+    .ql-editor {
+      min-height: 150px;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .table-responsive {
+        overflow-x: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="/">
+        <i class="fas fa-language"></i> Apprendre l'Espagnol
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarMain">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a class="nav-link" href="/espagnol/"><i class="fas fa-book"></i> Vocabulaire</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/espagnol/flashcard"><i class="fas fa-clone"></i> Flash Cards</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/espagnol/dialogues"><i class="fas fa-comments"></i> Dialogues</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/espagnol/stories"><i class="fas fa-book-open"></i> Histoires</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container container-main">
+    <h1 class="page-title"><i class="fas fa-plus-circle me-2"></i>Ajouter un nouveau mot</h1>
+    
+    <!-- Messages de notification -->
+    <% if (typeof messages !== 'undefined' && messages.length > 0) { %>
+      <% messages.forEach(function(msg) { %>
+        <div class="alert alert-<%= msg.category %> mt-3"><%= msg.message %></div>
+      <% }); %>
+    <% } %>
+    
+    <div class="card card-custom">
+      <div class="card-header-custom">
+        <h4 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Formulaire d'ajout</h4>
+      </div>
+      <div class="card-body-custom">
+        <form id="add-word-form" 
+              action="/espagnol/add" 
+              method="post" 
+              class="needs-validation" 
+              enctype="multipart/form-data" 
+              novalidate>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group-custom">
+                <label for="word" class="form-label">Mot :</label>
+                <input type="text" id="word" name="word" class="form-control-custom" required>
+                <div class="invalid-feedback">Veuillez entrer un mot</div>
+              </div>
+            
+              <div class="form-group-custom">
+                <label for="tags">Tags :</label>
+                <select id="tags" name="tags" multiple class="form-control-custom">
+                  <% if (typeof tags !== 'undefined' && Array.isArray(tags)) { %>
+                    <% tags.forEach(function(tag) { %>
+                      <option value="<%= tag %>"><%= tag %></option>
+                    <% }); %>
+                  <% } %>
+                </select>
+                <small class="text-muted">Maintenez Ctrl (ou Cmd) pour sélectionner plusieurs tags</small>
+              </div>
+              
+              <div class="form-group-custom">
+                <label for="youglish">Lien Youglish :</label>
+                <input type="url" id="youglish" name="youglish" class="form-control-custom">
+                <small class="text-muted">Généré automatiquement à partir du mot</small>
+              </div>
+              
+              <div class="form-group-custom">
+                <label for="image">Image :</label>
+                <input type="file" id="image" name="image" accept="image/*" class="form-control">
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <div class="form-group-custom">
+                <label for="synthese">Synthèse :</label>
+                <div id="synthese-editor" class="editor-container" style="height: 150px;"></div>
+              </div>
+              
+              <div class="form-check mb-3">
+                <input type="checkbox" id="disable-auto-synthese" name="disable_auto_synthese" class="form-check-input">
+                <label class="form-check-label" for="disable-auto-synthese">
+                  Ne pas générer automatiquement la synthèse
+                </label>
+              </div>
+            </div>
+          </div>
+          <input type="hidden" name="synthese" id="hidden-synthese">
+
+          <!-- Conteneur de la barre de progression -->
+          <div id="progress-bar-container" style="display: none; margin-bottom: 15px;">
+            <div class="progress">
+              <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
+                  style="width: 0%;" aria-valuemin="0" aria-valuemax="100">0%</div>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between mt-4">
+            <a href="/espagnol/" class="btn btn-outline-secondary">
+              <i class="fas fa-arrow-left me-2"></i>Retour
+            </a>
+            <button type="submit" class="btn btn-custom-primary">
+              <i class="fas fa-save me-2"></i>Ajouter le mot
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Footer -->
+  <footer class="footer-custom">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-6 text-md-start text-center mb-3 mb-md-0">
+          <h5>Navigation rapide</h5>
+          <div class="d-flex flex-column flex-md-row justify-content-md-start justify-content-center">
+            <a href="/espagnol/" class="me-md-3">Vocabulaire</a>
+            <a href="/espagnol/flashcard" class="me-md-3">Flash Cards</a>
+            <a href="/espagnol/dialogues" class="me-md-3">Dialogues</a>
+            <a href="/espagnol/stories">Histoires</a>
+          </div>
+        </div>
+        <div class="col-md-6 text-md-end text-center">
+          <p class="mb-0">© <%= new Date().getFullYear() %> Apprendre l'Espagnol - Tous droits réservés</p>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- jQuery (nécessaire pour Bootstrap) -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- Quill JS -->
+  <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+  
+  <!-- Script pour générer automatiquement le lien Youglish -->
+  <script>
+    document.getElementById('word').addEventListener('input', function() {
+      let wordVal = this.value.trim();
+      if (wordVal) {
+        document.getElementById('youglish').value = "https://youglish.com/pronounce/" 
+                                                  + encodeURIComponent(wordVal) 
+                                                  + "/spanish";
+      } else {
+        document.getElementById('youglish').value = "";
+      }
+    });
+  </script>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialisation de l'éditeur Quill pour la synthèse
+      const quillSynthese = new Quill('#synthese-editor', {
+        theme: 'snow',
+        modules: {
+          toolbar: [
+            [{ 'color': [] }, { 'background': [] }],
+            ['bold', 'italic', 'underline'],
+            [{ header: [1, 2, 3, false] }],
+            [{ list: 'ordered' }, { list: 'bullet' }],
+            ['link']
+          ]
+        }
+      });
+      
+      // Gestion du formulaire d'ajout
+      const form = document.getElementById('add-word-form');
+      const hiddenSynthese = document.getElementById('hidden-synthese');
+      
+      if (form) {
+        form.addEventListener('submit', function(e) {
+          e.preventDefault();
+          
+          // Empêcher la soumission du formulaire si le champ mot est vide
+          const wordField = document.getElementById('word');
+          if (!wordField.value.trim()) {
+            alert('Veuillez entrer un mot');
+            return false;
+          }
+          
+          // Récupérer le contenu de l'éditeur Quill et l'insérer dans le champ caché
+          hiddenSynthese.value = quillSynthese.root.innerHTML;
+          
+          // Afficher une indication visuelle que le formulaire est en cours d'envoi
+          const submitButton = form.querySelector('button[type="submit"]');
+          submitButton.disabled = true;
+          submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Ajout en cours...';
+          
+          // Pour un formulaire avec fichier, nous devons utiliser FormData
+          const formData = new FormData(form);
+          
+          // Envoi des données via fetch
+          fetch(form.action, {
+            method: 'POST',
+            body: formData  // Ne pas définir de Content-Type, le navigateur le fera automatiquement
+          })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Erreur réseau: ' + response.status);
+            }
+            return response.json();
+          })
+          .then(data => {
+            if (data.status === 'success') {
+              // Afficher un message de succès
+              const successAlert = document.createElement('div');
+              successAlert.className = 'alert alert-success alert-dismissible fade show';
+              successAlert.innerHTML = `
+                <strong>Succès!</strong> Le mot "${wordField.value}" a été ajouté avec succès.
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              `;
+              form.insertAdjacentElement('beforebegin', successAlert);
+              
+              // Réinitialiser le formulaire
+              form.reset();
+              quillSynthese.setText('');
+              
+              // Réactiver le bouton
+              submitButton.disabled = false;
+              submitButton.innerHTML = '<i class="fas fa-save me-2"></i>Ajouter le mot';
+              
+              // Rediriger vers la liste de vocabulaire après quelques secondes
+              setTimeout(() => {
+                window.location.href = "/espagnol/";
+              }, 2000);
+            } else {
+              console.error('Erreur lors de l\'ajout:', data.message);
+              alert('Erreur lors de l\'ajout: ' + (data.message || 'Une erreur est survenue'));
+              submitButton.disabled = false;
+              submitButton.innerHTML = '<i class="fas fa-save me-2"></i>Ajouter le mot';
+            }
+          })
+          .catch(error => {
+            console.error('Erreur:', error);
+            alert('Erreur lors de l\'ajout du mot: ' + error.message);
+            submitButton.disabled = false;
+            submitButton.innerHTML = '<i class="fas fa-save me-2"></i>Ajouter le mot';
+          });
+        });
+      }
+      
+      // Vérification de doublon lors du quitter du champ "word"
+      document.getElementById('word').addEventListener('blur', function() {
+        const wordValue = this.value.trim();
+        if (!wordValue) return;
+        
+        fetch("/espagnol/check_duplicate", {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ word: wordValue })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'duplicate') {
+            alert("Ce mot existe déjà : " + data.word.word);
+          }
+        })
+        .catch(error => console.error('Erreur lors de la vérification du doublon:', error));
+      });
+    });
+  </script>
+</body>
+</html>
