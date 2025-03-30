@@ -57,22 +57,22 @@
                                 <% dialogue.lignes.forEach(function(ligne) { %>
                                     <tr class="dialogue-row" data-dialogue-id="<%= dialogue.id %>">
                                     <td>
-                                        <div class="text-wrap"><%= dialogue.personne_a %></div>
+                                        <div class="text-wrap"><%= ligne.personne_a %></div>
                                     </td>
                                     <td>
                                         <button class="btn btn-outline-primary btn-sm speak-btn" 
                                                 data-person="a" 
-                                                data-text="<%= dialogue.personne_a %>">
+                                                data-text="<%= ligne.personne_a %>">
                                             <i class="fas fa-volume-up"></i>
                                         </button>
                                     </td>
                                     <td>
-                                        <div class="text-wrap"><%= dialogue.personne_b %></div>
+                                        <div class="text-wrap"><%= ligne.personne_b %></div>
                                     </td>
                                     <td>
                                         <button class="btn btn-outline-primary btn-sm speak-btn" 
                                                 data-person="b" 
-                                                data-text="<%= dialogue.personne_b %>">
+                                                data-text="<%= ligne.personne_b %>">
                                             <i class="fas fa-volume-up"></i>
                                         </button>
                                     </td>
@@ -129,6 +129,7 @@
                 try {
                     const response = await fetch('/espagnol/api/voice-settings', {
                         method: 'POST',
+                        credentials: 'same-origin', // Ajout pour envoyer les cookies
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             voice_a: voiceASelect.value,
@@ -160,7 +161,9 @@
             // Récupérer les préférences sauvegardées
             let savedSettings = null;
             try {
-                const response = await fetch('/espagnol/api/voice-settings');
+                const response = await fetch('/espagnol/api/voice-settings', {
+                    credentials: 'same-origin' // Ajout pour envoyer les cookies
+                });
                 if (response.ok) {
                     savedSettings = await response.json();
                     console.log('Préférences de voix récupérées:', savedSettings);
@@ -171,7 +174,9 @@
             
             // Chargement des voix disponibles
             try {
-                const response = await fetch('/espagnol/api/polly/voices?language=es-ES');
+                const response = await fetch('/espagnol/api/polly/voices?language=es-ES', {
+                    credentials: 'same-origin' // Ajout pour envoyer les cookies
+                });
                 if (!response.ok) throw new Error('Erreur lors du chargement des voix');
                 
                 const voices = await response.json();
@@ -255,6 +260,7 @@
                     
                     const response = await fetch('/espagnol/api/polly', {
                         method: 'POST',
+                        credentials: 'same-origin', // Ajout pour envoyer les cookies
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 
                             text: text, 
