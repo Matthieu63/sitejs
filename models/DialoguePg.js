@@ -3,7 +3,7 @@ const db = require('../config/postgres');
 const axios = require('axios');
 const fs = require('fs').promises;
 const path = require('path');
-const { parse } = require('pdf-parse');
+const pdfParse = require('pdf-parse'); // ✅ pas de destructuring
 
 // Fonction pour générer des dialogues à partir d'un texte avec l'API Claude
 async function generateDialoguesFromText(text, numDialogues = 3) {
@@ -108,8 +108,8 @@ function extractDialoguesFromText(text, numDialogues) {
 async function extractTextFromPDF(filePath) {
   try {
     const dataBuffer = await fs.readFile(filePath);
-    const data = await pdfParse(buffer); // ✅
-  } catch (error) {
+    const data = await pdfParse(dataBuffer);
+} catch (error) {
     console.error('Erreur lors de l\'extraction du texte du PDF:', error);
     throw error;
   }
