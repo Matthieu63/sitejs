@@ -10,7 +10,8 @@ const upload = multer({ dest: "uploads/" });
 // Voir tous les dialogues
 router.get("/", async (req, res) => {
   try {
-    const dialogues = await DialoguePg.getAllDialogues();
+    const userId = req.session.userId;
+    const dialogues = await DialoguePg.getAllDialogues(userId);
     res.render("espagnol/dialogues_index", { dialogues });
   } catch (error) {
     console.error("Erreur lors de la récupération des dialogues:", error);
@@ -20,8 +21,9 @@ router.get("/", async (req, res) => {
 
 // Voir un dialogue spécifique
 router.get("/view/:id", async (req, res) => {
-  const dialogueId = req.params.id;
-  try {
+  const userId = req.session.userId; // ou req.user.id selon ton auth
+  const dialogueId = await DialoguePg.processAndGenerateDialoguesFromPDF(filePath, originalFilename, userId);
+    try {
     const dialogue = await DialoguePg.getDialogueById(dialogueId);
     if (!dialogue) return res.status(404).send("Dialogue introuvable");
     res.render("espagnol/dialogues_view", { dialogue });

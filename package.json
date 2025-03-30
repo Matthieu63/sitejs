@@ -11,6 +11,7 @@
     "node": "18.x"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
     "aws-sdk": "^2.1451.0",
     "axios": "^1.4.0",
     "bcrypt": "^5.1.0",
