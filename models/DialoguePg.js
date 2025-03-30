@@ -108,8 +108,7 @@ function extractDialoguesFromText(text, numDialogues) {
 async function extractTextFromPDF(filePath) {
   try {
     const dataBuffer = await fs.readFile(filePath);
-    const data = await parse(dataBuffer);
-    return data.text;
+    const data = await pdfParse(buffer); // ✅
   } catch (error) {
     console.error('Erreur lors de l\'extraction du texte du PDF:', error);
     throw error;
