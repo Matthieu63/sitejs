@@ -40,7 +40,7 @@ async function generateDialoguesFromText(originalText, numDialogues = 3) {
     const prompt = `Tu es un assistant pédagogique spécialisé en espagnol. À partir du texte suivant, génère ${numDialogues} dialogues courts (1 réplique par personne), simples et naturels entre deux personnes. Retourne uniquement les dialogues, sans introduction ni conclusion :\n\n"""${originalText}"""`;
 
     const response = await anthropic.messages.create({
-      model: "claude-3-sonnet-20240229",
+      model: "claude-3-5-sonnet-20241022",
       max_tokens: 1000,
       temperature: 0.7,
       messages: [
