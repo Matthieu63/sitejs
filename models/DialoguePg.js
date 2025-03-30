@@ -437,4 +437,8 @@ const DialoguePg = {
   generateDialoguesFromYouTube
 };
 
+console.log("Réponse Claude : ", JSON.stringify(response.data, null, 2));
+console.log("Dialogue extrait :", dialogues);
+
+
 module.exports = DialoguePg;
