@@ -88,7 +88,7 @@ CREATE TABLE IF NOT EXISTS user_preferences (
 
 -- INDEXES
 CREATE INDEX IF NOT EXISTS idx_words_user_id ON words(user_id);
-CREATE INDEX IF NOT EXISTS idx_words_tags ON words USING GIN(tags);
+CREATE INDEX IF NOT EXISTS idx_words_tags ON words USING GIN(tags gin__text_ops);
 CREATE INDEX IF NOT EXISTS idx_dialogues_files_user_id ON dialogues_files(user_id);
 CREATE INDEX IF NOT EXISTS idx_dialogues_file_id ON dialogues(file_id);
 CREATE INDEX IF NOT EXISTS idx_stories_user_id ON stories(user_id);
