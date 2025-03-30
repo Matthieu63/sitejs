@@ -1,8 +1,8 @@
+// routes/vocabRoutes.js
 const express = require('express');
 const router = express.Router();
-const Vocab = require('../models/Vocab');
+const { Vocab } = require('../models/Vocab');
 const UserProgress = require('../models/UserProgress');
-const axios = require('axios');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -37,7 +37,7 @@ const upload = multer({
 
 // Middleware pour vérifier si l'utilisateur est connecté
 function isLoggedIn(req, res, next) {
-  if (!req.session.user) {
+  if (!req.session || !req.session.user) {
     return res.redirect('/login');
   }
   next();
@@ -89,7 +89,10 @@ router.get('/', isLoggedIn, async (req, res) => {
       available_tags: tags,  // Si c'est la même liste pour les deux usages
       stats,
       progress,
-      currentUrl: req.originalUrl.split('?')[0]
+      currentUrl: req.originalUrl.split('?')[0],
+      req: req, // Passer l'objet req pour accéder aux query parameters dans le template
+      success: req.query.success,
+      word: req.query.word
     });
   } catch (error) {
     console.error('Erreur lors de l\'affichage des mots:', error);
@@ -135,16 +138,18 @@ router.post('/add', isLoggedIn, upload.single('image'), async (req, res) => {
       wordData.image = req.body.image;
     }
     
-    // Si la synthèse automatique est activée
+    // Gestion de la synthèse automatique
     if (!req.body.disable_auto_synthese && !wordData.synthese) {
-      try {
-        // Appeler une API pour générer la synthèse (à adapter selon votre besoin)
-        // Par exemple, on pourrait utiliser l'API Claude ici
-        // Simulation avec une synthèse simple
-        wordData.synthese = `<p>Définition automatique du mot <strong>${wordData.word}</strong></p>`;
-      } catch (apiError) {
-        console.error('Erreur lors de la génération automatique de synthèse:', apiError);
-      }
+      wordData.disable_auto_synthese = false;
+    } else {
+      wordData.disable_auto_synthese = true;
+    }
+    
+    // Gestion de l'image automatique
+    if (!req.body.disable_auto_image && !wordData.image) {
+      wordData.disable_auto_image = false;
+    } else {
+      wordData.disable_auto_image = true;
     }
     
     // Ajouter le mot
@@ -165,11 +170,29 @@ router.post('/add', isLoggedIn, upload.single('image'), async (req, res) => {
       });
     }
     
-    // Envoyer la réponse
-    res.json(result);
+    // Déterminer si c'est une requête AJAX
+    const isAjax = req.xhr || (req.headers.accept && req.headers.accept.includes('application/json'));
+    
+    if (isAjax) {
+      // Réponse JSON pour les requêtes AJAX
+      return res.json(result);
+    } else {
+      // Redirection avec message flash pour les requêtes normales
+      req.flash('success', `Le mot "${wordData.word}" a été ajouté avec succès!`);
+      return res.redirect('/espagnol/');
+    }
   } catch (error) {
     console.error('Erreur lors de l\'ajout du mot:', error);
-    res.status(500).json({ status: 'error', message: 'Erreur serveur' });
+    
+    // Déterminer si c'est une requête AJAX
+    const isAjax = req.xhr || (req.headers.accept && req.headers.accept.includes('application/json'));
+    
+    if (isAjax) {
+      return res.status(500).json({ status: 'error', message: error.message || 'Erreur serveur' });
+    } else {
+      req.flash('error', `Erreur lors de l'ajout du mot: ${error.message}`);
+      return res.redirect('/espagnol/add');
+    }
   }
 });
 
@@ -236,7 +259,7 @@ router.post('/delete', isLoggedIn, async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error('Erreur lors de la suppression du mot:', error);
-    res.status(500).json({ status: 'error', message: 'Erreur serveur' });
+    res.status(500).json({ status: 'error', message: error.message || 'Erreur serveur' });
   }
 });
 
@@ -271,7 +294,7 @@ router.post('/update_note', isLoggedIn, async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error('Erreur lors de la mise à jour de la note:', error);
-    res.status(500).json({ status: 'error', message: 'Erreur serveur' });
+    res.status(500).json({ status: 'error', message: error.message || 'Erreur serveur' });
   }
 });
 
@@ -292,7 +315,7 @@ router.post('/check_duplicate', isLoggedIn, async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error('Erreur lors de la vérification de doublon:', error);
-    res.status(500).json({ status: 'error', message: 'Erreur serveur' });
+    res.status(500).json({ status: 'error', message: error.message || 'Erreur serveur' });
   }
 });
 
@@ -313,72 +336,110 @@ router.post('/check_duplicates_bulk', isLoggedIn, async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error('Erreur lors de la vérification des doublons en masse:', error);
-    res.status(500).json({ status: 'error', message: 'Erreur serveur' });
+    res.status(500).json({ status: 'error', message: error.message || 'Erreur serveur' });
   }
 });
 
 // Route pour ajouter des mots en masse
-router.post('/add_bulk', isLoggedIn, async (req, res) => {
+router.get('/bulk_add', isLoggedIn, async (req, res) => {
   try {
     const userId = req.session.user;
-    const { words, tags, force_add } = req.body;
+    const tags = await Vocab.getAllTags(userId);
     
-    if (!words || !Array.isArray(words)) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Liste de mots requise'
-      });
+    res.render('espagnol/bulk_add', { available_tags: tags });
+  } catch (error) {
+    console.error('Erreur lors de l\'affichage du formulaire d\'ajout en masse:', error);
+    res.status(500).send('Erreur serveur');
+  }
+});
+
+// Traitement de l'ajout en masse
+router.post('/bulk_add', isLoggedIn, async (req, res) => {
+  try {
+    const userId = req.session.user;
+    const { words_text, tags_bulk, disable_auto_synthese, disable_auto_image, skip_duplicates } = req.body;
+    
+    // Traiter le texte pour obtenir la liste des mots
+    const words = words_text
+      .split('\n')
+      .map(word => word.trim())
+      .filter(word => word.length > 0);
+    
+    if (words.length === 0) {
+      req.flash('error', 'Aucun mot valide fourni');
+      return res.redirect('/espagnol/bulk_add');
     }
     
-    const results = {
-      success: [],
-      errors: []
-    };
+    // Préparer les tags
+    const tagsStr = Array.isArray(tags_bulk) ? tags_bulk.join(', ') : (tags_bulk || '');
     
+    // Compteurs pour le résultat
+    let added = 0;
+    let skipped = 0;
+    let errors = [];
+    
+    // Traiter chaque mot
     for (const word of words) {
-      try {
-        const wordData = {
-          word: word,
-          tags: tags || '',
-          note: 0,
-          force_add: force_add === true
-        };
-        
-        const result = await Vocab.addWord(userId, wordData);
-        
-        if (result.status === 'success') {
-          results.success.push(word);
-        } else {
-          results.errors.push({ word, reason: result.message });
+      // Vérifier si le mot existe déjà
+      const checkResult = await Vocab.checkDuplicate(word, userId);
+      
+      if (checkResult.status === 'duplicate') {
+        if (skip_duplicates === 'on') {
+          skipped++;
+          continue;
         }
-      } catch (error) {
-        results.errors.push({ word, reason: 'Erreur interne' });
+      }
+      
+      // Préparer les données du mot
+      const wordData = {
+        word,
+        tags: tagsStr,
+        youglish: `https://youglish.com/pronounce/${encodeURIComponent(word)}/spanish`,
+        note: 0,
+        disable_auto_synthese: disable_auto_synthese === 'on',
+        disable_auto_image: disable_auto_image === 'on',
+        force_add: true // Pour permettre l'ajout même si le mot existe
+      };
+      
+      // Ajouter le mot
+      const result = await Vocab.addWord(userId, wordData);
+      
+      if (result.status === 'success') {
+        added++;
+      } else {
+        errors.push({ word, reason: result.message });
       }
     }
     
     // Mettre à jour la progression de l'utilisateur
-    if (results.success.length > 0) {
+    if (added > 0) {
       await UserProgress.updateProgress(userId, 'espagnol', 'vocabulaire', {
         stats: {
-          completedItems: results.success.length, // Ajouter le nombre de mots ajoutés
-          bulkAddCount: results.success.length
+          completedItems: added,
+          bulkAddCount: added
         },
         activity: {
           type: 'bulk_add',
-          details: `Ajout de ${results.success.length} mots en masse`
+          details: `Ajout de ${added} mots en masse`
         }
       });
     }
     
-    res.json({
-      status: 'completed',
-      added: results.success.length,
-      failed: results.errors.length,
-      results
-    });
+    // Message de résultat
+    let message = `${added} mots ajoutés avec succès.`;
+    if (skipped > 0) {
+      message += ` ${skipped} doublons ignorés.`;
+    }
+    if (errors.length > 0) {
+      message += ` ${errors.length} erreurs rencontrées.`;
+    }
+    
+    req.flash('success', message);
+    return res.redirect('/espagnol/');
   } catch (error) {
     console.error('Erreur lors de l\'ajout en masse:', error);
-    res.status(500).json({ status: 'error', message: 'Erreur serveur' });
+    req.flash('error', `Erreur: ${error.message}`);
+    return res.redirect('/espagnol/bulk_add');
   }
 });
 
@@ -388,10 +449,10 @@ router.get('/export', isLoggedIn, async (req, res) => {
     const userId = req.session.user;
     
     // Récupérer tous les mots de l'utilisateur
-    const allWords = await Vocab.getAllWords(userId, 1, 1000000); // Très grand nombre pour tout récupérer
+    const result = await Vocab.getAllWords(userId, 1, 1000000); // Très grand nombre pour tout récupérer
     
     // Formater les données pour l'export
-    const exportData = allWords.words.map(word => ({
+    const exportData = result.words.map(word => ({
       word: word.word,
       synthese: word.synthese,
       youglish: word.youglish,
@@ -414,7 +475,7 @@ router.get('/export', isLoggedIn, async (req, res) => {
     });
   } catch (error) {
     console.error('Erreur lors de l\'export du vocabulaire:', error);
-    res.status(500).json({ status: 'error', message: 'Erreur serveur' });
+    res.status(500).json({ status: 'error', message: error.message || 'Erreur serveur' });
   }
 });
 
@@ -492,7 +553,262 @@ router.post('/import', isLoggedIn, async (req, res) => {
     });
   } catch (error) {
     console.error('Erreur lors de l\'import du vocabulaire:', error);
-    res.status(500).json({ status: 'error', message: 'Erreur serveur' });
+    res.status(500).json({ status: 'error', message: error.message || 'Erreur serveur' });
+  }
+});
+
+// Route pour accéder à un mot spécifique
+router.get('/word/:id', isLoggedIn, async (req, res) => {
+  try {
+    const userId = req.session.user;
+    const wordId = req.params.id;
+    
+    // Récupérer le mot spécifique
+    const word = await Vocab.getWordById(wordId, userId);
+    
+    if (!word) {
+      req.flash('error', 'Mot non trouvé');
+      return res.redirect('/espagnol/');
+    }
+    
+    // Récupérer les mots précédent et suivant pour la navigation
+    const db = await getDbConnection();
+    const allWordIds = await db.all("SELECT id FROM words ORDER BY lower(word)");
+    await db.close();
+    
+    const ids = allWordIds.map(row => row.id);
+    const currentIndex = ids.findIndex(id => id === parseInt(wordId));
+    
+    const prevId = currentIndex > 0 ? ids[currentIndex - 1] : null;
+    const nextId = currentIndex < ids.length - 1 ? ids[currentIndex + 1] : null;
+    
+    res.render('espagnol/word_detail', { 
+      word, 
+      prev_id: prevId, 
+      next_id: nextId 
+    });
+  } catch (error) {
+    console.error('Erreur lors de l\'affichage du mot:', error);
+    req.flash('error', `Erreur: ${error.message}`);
+    res.redirect('/espagnol/');
+  }
+});
+
+// Route de gestion des tags
+router.get('/admin/tags', isLoggedIn, async (req, res) => {
+  try {
+    const userId = req.session.user;
+    const db = await getDbConnection();
+    
+    const tagsData = [];
+    const tagsRaw = await db.all("SELECT name FROM tags ORDER BY name");
+    
+    for (const tag of tagsRaw) {
+      // Compter les occurrences de ce tag dans les mots
+      const count = await db.get(
+        "SELECT COUNT(*) as count FROM words WHERE tags LIKE ?", 
+        [`%${tag.name}%`]
+      );
+      
+      tagsData.push({
+        name: tag.name,
+        count: count.count
+      });
+    }
+    
+    await db.close();
+    
+    res.render('espagnol/manage_tags', { tags: tagsData });
+  } catch (error) {
+    console.error('Erreur lors de l\'affichage des tags:', error);
+    req.flash('error', `Erreur: ${error.message}`);
+    res.redirect('/espagnol/');
+  }
+});
+
+// Route pour ajouter un tag
+router.post('/admin/tags', isLoggedIn, async (req, res) => {
+  try {
+    const userId = req.session.user;
+    const { new_tag, delete_tag } = req.body;
+    
+    if (new_tag) {
+      // Ajout d'un nouveau tag
+      const db = await getDbConnection();
+      
+      // Vérifier si le tag existe déjà
+      const existing = await db.get(
+        "SELECT name FROM tags WHERE lower(name) = lower(?)",
+        [new_tag.trim()]
+      );
+      
+      if (!existing) {
+        await db.run("INSERT INTO tags (name) VALUES (?)", [new_tag.trim()]);
+        req.flash('success', `Le tag "${new_tag}" a été ajouté avec succès!`);
+      } else {
+        req.flash('warning', `Le tag "${new_tag}" existe déjà.`);
+      }
+      
+      await db.close();
+    } else if (delete_tag) {
+      // Suppression d'un tag
+      const db = await getDbConnection();
+      
+      // Supprimer le tag
+      await db.run("DELETE FROM tags WHERE name = ?", [delete_tag]);
+      
+      // Mettre à jour les mots qui utilisent ce tag
+      const rows = await db.all(
+        "SELECT id, tags FROM words WHERE tags LIKE ?",
+        [`%${delete_tag}%`]
+      );
+      
+      for (const row of rows) {
+        const tagsList = row.tags.split(',').map(t => t.trim()).filter(t => t);
+        const newTags = tagsList.filter(t => t.toLowerCase() !== delete_tag.toLowerCase());
+        const updatedTags = newTags.join(', ');
+        
+        await db.run(
+          "UPDATE words SET tags = ? WHERE id = ?",
+          [updatedTags, row.id]
+        );
+      }
+      
+      await db.close();
+      req.flash('success', `Le tag "${delete_tag}" a été supprimé avec succès!`);
+    }
+    
+    res.redirect('/espagnol/admin/tags');
+  } catch (error) {
+    console.error('Erreur lors de la gestion des tags:', error);
+    req.flash('error', `Erreur: ${error.message}`);
+    res.redirect('/espagnol/admin/tags');
+  }
+});
+
+// Route pour le diagnostic des tags
+router.get('/debug/check_tags', isLoggedIn, async (req, res) => {
+  try {
+    const userId = req.session.user;
+    const result = {
+      status: 'success',
+      messages: [],
+      tags_in_db: [],
+      tags_in_words: []
+    };
+    
+    const db = await getDbConnection();
+    
+    // 1. Vérifier la table tags
+    const tagCount = await db.get("SELECT COUNT(*) as count FROM tags");
+    result.messages.push(`Nombre de tags dans la table tags: ${tagCount.count}`);
+    
+    if (tagCount.count > 0) {
+      const tagsInDb = await db.all("SELECT name FROM tags ORDER BY name");
+      result.tags_in_db = tagsInDb.map(tag => tag.name);
+      result.messages.push(`Tags trouvés: ${result.tags_in_db.join(', ')}`);
+    } else {
+      result.messages.push("AUCUN TAG trouvé dans la table tags!");
+      
+      // Ajouter des tags par défaut
+      const defaultTags = ["médecine", "nourriture", "voyage", "famille", "maison", "commerce", "éducation"];
+      for (const tag of defaultTags) {
+        try {
+          await db.run("INSERT INTO tags (name) VALUES (?)", [tag]);
+          result.messages.push(`Tag par défaut ajouté: ${tag}`);
+        } catch (error) {
+          if (error.code === 'SQLITE_CONSTRAINT') {
+            result.messages.push(`Erreur: Le tag '${tag}' existe déjà`);
+          } else {
+            throw error;
+          }
+        }
+      }
+      
+      const tagsInDb = await db.all("SELECT name FROM tags ORDER BY name");
+      result.tags_in_db = tagsInDb.map(tag => tag.name);
+      result.messages.push(`Tags après correction: ${result.tags_in_db.join(', ')}`);
+    }
+    
+    // 2. Vérifier les tags utilisés dans les mots
+    const tagsFromWords = new Set();
+    const wordsWithTags = await db.all(
+      "SELECT id, word, tags FROM words WHERE tags IS NOT NULL AND tags != ''"
+    );
+    
+    for (const word of wordsWithTags) {
+      if (word.tags) {
+        const tags = word.tags.split(',').map(t => t.trim()).filter(t => t);
+        result.messages.push(`Mot '${word.word}' (ID: ${word.id}) a les tags: ${tags.join(', ')}`);
+        tags.forEach(tag => tagsFromWords.add(tag));
+      }
+    }
+    
+    result.tags_in_words = Array.from(tagsFromWords);
+    result.messages.push(`Tags extraits des mots: ${result.tags_in_words.join(', ')}`);
+    
+    // Vérifier si tous les tags des mots existent dans la table tags
+    const missingTags = result.tags_in_words.filter(tag => !result.tags_in_db.includes(tag));
+    if (missingTags.length > 0) {
+      result.messages.push(`Tags manquants dans la table tags: ${missingTags.join(', ')}`);
+      
+      // Ajouter les tags manquants
+      for (const tag of missingTags) {
+        try {
+          await db.run("INSERT INTO tags (name) VALUES (?)", [tag]);
+          result.messages.push(`Tag manquant ajouté: ${tag}`);
+        } catch (error) {
+          if (error.code === 'SQLITE_CONSTRAINT') {
+            result.messages.push(`Erreur: Impossible d'ajouter le tag '${tag}'`);
+          } else {
+            throw error;
+          }
+        }
+      }
+    }
+    
+    await db.close();
+    
+    // Générer une réponse HTML
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+          <title>Diagnostic des Tags</title>
+          <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; }
+              h1 { color: #3f51b5; }
+              .success { color: green; }
+              .error { color: red; }
+              .info { color: blue; }
+              pre { background: #f5f5f5; padding: 10px; border-radius: 5px; }
+          </style>
+      </head>
+      <body>
+          <h1>Diagnostic des Tags</h1>
+          <p class="${result.status}">Statut: ${result.status.toUpperCase()}</p>
+          
+          <h2>Messages de diagnostic:</h2>
+          <ul>
+          ${result.messages.map(msg => `<li>${msg}</li>`).join('')}
+          </ul>
+          
+          <h2>Tags dans la base de données:</h2>
+          <pre>${result.tags_in_db.length > 0 ? result.tags_in_db.join(", ") : "Aucun"}</pre>
+          
+          <h2>Tags utilisés dans les mots:</h2>
+          <pre>${result.tags_in_words.length > 0 ? result.tags_in_words.join(", ") : "Aucun"}</pre>
+          
+          <p><a href="/espagnol/">Retour à la page d'accueil</a></p>
+          <p><a href="/espagnol/admin/tags">Aller à la gestion des tags</a></p>
+      </body>
+      </html>
+    `;
+    
+    res.send(html);
+  } catch (error) {
+    console.error('Erreur lors du diagnostic des tags:', error);
+    res.status(500).send(`<html><body><h1>Erreur</h1><p>${error.message}</p><a href="/espagnol/">Retour</a></body></html>`);
   }
 });
 

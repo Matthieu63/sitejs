@@ -1,370 +1,535 @@
-const db = require('../config/database');
+// models/Vocab.js
+const sqlite3 = require('sqlite3').verbose();
+const { open } = require('sqlite');
+const axios = require('axios');
+const path = require('path');
+const fs = require('fs');
 
-class Vocab {
-  // Récupérer tous les mots d'un utilisateur avec pagination
-  static async getAllWords(userId, page = 1, limit = 10, filters = {}) {
-    const offset = (page - 1) * limit;
-    const database = db.getDB();
-    
-    try {
-      // Construire la requête avec les filtres
-      let query = 'SELECT * FROM words WHERE user_id = ?';
-      const params = [userId];
-      
-      // Ajouter les conditions de filtre si elles existent
-      if (filters.tag) {
-        query += ' AND tags LIKE ?';
-        params.push(`%${filters.tag}%`);
-      }
-      
-      if (filters.rating) {
-        query += ' AND note = ?';
-        params.push(filters.rating);
-      }
-      
-      if (filters.search) {
-        query += ' AND word LIKE ?';
-        params.push(`%${filters.search}%`);
-      }
-      
-      // Ajouter l'ordre et la pagination
-      query += ' ORDER BY id DESC LIMIT ? OFFSET ?';
-      params.push(limit, offset);
-      
-      // Exécuter la requête
-      const words = await db.getAllRows(database, query, params);
-      
-      // Récupérer le nombre total de mots pour la pagination
-      let countQuery = 'SELECT COUNT(*) as total FROM words WHERE user_id = ?';
-      const countParams = [userId];
-      
-      if (filters.tag) {
-        countQuery += ' AND tags LIKE ?';
-        countParams.push(`%${filters.tag}%`);
-      }
-      
-      if (filters.rating) {
-        countQuery += ' AND note = ?';
-        countParams.push(filters.rating);
-      }
-      
-      if (filters.search) {
-        countQuery += ' AND word LIKE ?';
-        countParams.push(`%${filters.search}%`);
-      }
-      
-      const countResult = await db.getRow(database, countQuery, countParams);
-      const total = countResult.total;
-      
-      database.close();
-      
-      return {
-        words,
-        pagination: {
-          total,
-          page,
-          limit,
-          totalPages: Math.ceil(total / limit)
-        }
-      };
-    } catch (error) {
-      console.error('Erreur lors de la récupération des mots:', error);
-      database.close();
-      throw error;
-    }
-  }
+// Chemin vers la base de données
+const DATABASE_PATH = path.join(__dirname, '../data/polyglot.db');
+
+// Fonction pour obtenir une connexion à la base de données
+async function getDbConnection() {
+  return open({
+    filename: DATABASE_PATH,
+    driver: sqlite3.Database
+  });
+}
+
+// Fonction pour vérifier si un mot existe déjà
+async function wordExists(word) {
+  const db = await getDbConnection();
+  const result = await db.get(
+    "SELECT id FROM words WHERE lower(word) = ?", 
+    [word.toLowerCase()]
+  );
+  await db.close();
+  return result !== undefined;
+}
+
+// Fonction pour formater le texte de réponse
+function formatResponseText(text) {
+  const paragraphs = text.split("\n\n");
+  const formattedParagraphs = paragraphs
+    .map(p => {
+      p = p.replace(/\n/g, "<br>");
+      return p.trim() ? `<p>${p.trim()}</p>` : "";
+    })
+    .filter(p => p.length > 0);
   
-  // Récupérer un mot par son ID pour un utilisateur spécifique
-  static async getWordById(id, userId) {
-    const database = db.getDB();
-    
-    try {
-      const word = await db.getRow(database, 'SELECT * FROM words WHERE id = ? AND user_id = ?', [id, userId]);
-      database.close();
-      return word;
-    } catch (error) {
-      console.error(`Erreur lors de la récupération du mot ${id}:`, error);
-      database.close();
-      throw error;
+  return formattedParagraphs.join("\n");
+}
+
+// Fonction pour vérifier si l'éditeur est vide
+function isEditorEmpty(html) {
+  const text = html.replace(/<[^<]+?>/g, '').replace(/&nbsp;/g, ' ').trim();
+  return text.length === 0;
+}
+
+// Fonction pour générer la synthèse avec Claude
+async function generateSynthese(word) {
+  try {
+    const prompt = (
+      `Est-ce que le mot '${word}' est fréquemment utilisé ? Si oui, explique pour quels usages, ` +
+      "avec plusieurs phrases exemples en espagnol (sans traduction). " +
+      "Puis, à la fin, liste 'synonymes :' suivi des synonymes et 'antonymes :' suivi des antonymes."
+    );
+
+    const apiKey = process.env.CLAUDE_API_KEY;
+    if (!apiKey) {
+      throw new Error("Clé API Claude manquante dans les variables d'environnement");
     }
-  }
-  
-  // Ajouter un nouveau mot pour un utilisateur
-  static async addWord(userId, wordData) {
-    const database = db.getDB();
-    
-    try {
-      // Vérifier si le mot existe déjà pour cet utilisateur
-      const existingWord = await db.getRow(
-        database, 
-        'SELECT * FROM words WHERE word = ? AND user_id = ?', 
-        [wordData.word, userId]
-      );
-      
-      if (existingWord && !wordData.force_add) {
-        database.close();
-        return { 
-          status: 'duplicate', 
-          message: 'Ce mot existe déjà dans votre vocabulaire.',
-          word: existingWord
-        };
-      }
-      
-      // Insérer le nouveau mot
-      const query = `
-        INSERT INTO words (user_id, word, synthese, youglish, note, tags, image, exemples)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `;
-      
-      const params = [
-        userId,
-        wordData.word,
-        wordData.synthese || '',
-        wordData.youglish || '',
-        wordData.note || 0,
-        wordData.tags || '',
-        wordData.image || '',
-        wordData.exemples || ''
-      ];
-      
-      const result = await db.runQuery(database, query, params);
-      
-      // Mettre à jour les tags si nécessaire
-      if (wordData.tags) {
-        const tagsList = wordData.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
-        
-        for (const tag of tagsList) {
-          await db.runQuery(
-            database,
-            'INSERT OR IGNORE INTO tags (user_id, name) VALUES (?, ?)',
-            [userId, tag]
-          );
+
+    const response = await axios.post(
+      "https://api.anthropic.com/v1/messages",
+      {
+        model: "claude-3-5-sonnet-20241022",
+        max_tokens: 512,
+        messages: [{ role: "user", content: prompt }]
+      },
+      {
+        headers: {
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json"
         }
       }
-      
-      database.close();
-      
-      return { 
-        status: 'success', 
-        message: 'Mot ajouté avec succès', 
-        wordId: result.lastID 
-      };
-    } catch (error) {
-      console.error('Erreur lors de l\'ajout du mot:', error);
-      database.close();
-      throw error;
-    }
-  }
-  
-  // Mettre à jour un mot pour un utilisateur
-  static async updateWord(id, userId, field, value) {
-    const database = db.getDB();
+    );
+
+    console.log("[DEBUG Claude] Response status:", response.status);
     
-    try {
-      // S'assurer que le champ est valide
-      const validFields = ['word', 'synthese', 'youglish', 'note', 'tags', 'image', 'exemples'];
-      
-      if (!validFields.includes(field)) {
-        database.close();
-        return { status: 'error', message: 'Champ invalide' };
-      }
-      
-      // Vérifier que le mot appartient à l'utilisateur
-      const word = await db.getRow(database, 'SELECT id FROM words WHERE id = ? AND user_id = ?', [id, userId]);
-      if (!word) {
-        database.close();
-        return { status: 'error', message: 'Mot non trouvé ou accès non autorisé' };
-      }
-      
-      // Mettre à jour le champ spécifié
-      const query = `UPDATE words SET ${field} = ? WHERE id = ? AND user_id = ?`;
-      await db.runQuery(database, query, [value, id, userId]);
-      
-      // Si on met à jour les tags, mettre à jour la table des tags
-      if (field === 'tags' && value) {
-        const tagsList = value.split(',').map(tag => tag.trim()).filter(tag => tag);
-        
-        for (const tag of tagsList) {
-          await db.runQuery(
-            database,
-            'INSERT OR IGNORE INTO tags (user_id, name) VALUES (?, ?)',
-            [userId, tag]
-          );
-        }
-      }
-      
-      database.close();
-      
-      return { status: 'success', message: 'Mot mis à jour avec succès' };
-    } catch (error) {
-      console.error(`Erreur lors de la mise à jour du mot ${id}:`, error);
-      database.close();
-      throw error;
+    let rawText = "";
+    if (response.data.content && response.data.content.length > 0) {
+      rawText = response.data.content[0].text.trim();
+    } else {
+      console.error("[ERROR] Format de réponse Claude inattendu:", response.data);
+      return "<em>Pas de synthèse générée par Claude.</em>";
     }
-  }
-  
-  // Supprimer un mot pour un utilisateur
-  static async deleteWord(id, userId) {
-    const database = db.getDB();
-    
-    try {
-      // Vérifier que le mot appartient à l'utilisateur
-      const word = await db.getRow(database, 'SELECT id FROM words WHERE id = ? AND user_id = ?', [id, userId]);
-      if (!word) {
-        database.close();
-        return { status: 'error', message: 'Mot non trouvé ou accès non autorisé' };
-      }
-      
-      await db.runQuery(database, 'DELETE FROM words WHERE id = ? AND user_id = ?', [id, userId]);
-      database.close();
-      
-      return { status: 'success', message: 'Mot supprimé avec succès' };
-    } catch (error) {
-      console.error(`Erreur lors de la suppression du mot ${id}:`, error);
-      database.close();
-      throw error;
+
+    if (!rawText) {
+      return "<em>Pas de synthèse générée par Claude.</em>";
     }
-  }
-  
-  // Récupérer tous les tags d'un utilisateur
-  static async getAllTags(userId) {
-    const database = db.getDB();
-    
-    try {
-      // Récupérer les tags définis dans la table tags
-      const tagsFromTable = await db.getAllRows(database, 'SELECT name FROM tags WHERE user_id = ?', [userId]);
-      
-      // Récupérer les tags utilisés dans les mots
-      const wordsWithTags = await db.getAllRows(database, 'SELECT tags FROM words WHERE user_id = ? AND tags IS NOT NULL AND tags != ""', [userId]);
-      
-      // Extraire les tags des mots
-      const tagsFromWords = new Set();
-      wordsWithTags.forEach(row => {
-        if (row.tags) {
-          row.tags.split(',').map(tag => tag.trim()).filter(tag => tag).forEach(tag => {
-            tagsFromWords.add(tag);
-          });
-        }
-      });
-      
-      // Combinaison et déduplication des tags
-      const allTags = new Set([
-        ...tagsFromTable.map(tag => tag.name),
-        ...tagsFromWords
-      ]);
-      
-      database.close();
-      
-      return [...allTags].sort();
-    } catch (error) {
-      console.error('Erreur lors de la récupération des tags:', error);
-      database.close();
-      throw error;
-    }
-  }
-  
-  // Vérifier si un mot existe déjà pour un utilisateur
-  static async checkDuplicate(word, userId) {
-    const database = db.getDB();
-    
-    try {
-      const existingWord = await db.getRow(
-        database, 
-        'SELECT * FROM words WHERE word = ? AND user_id = ?', 
-        [word, userId]
-      );
-      
-      database.close();
-      
-      if (existingWord) {
-        return { 
-          status: 'duplicate', 
-          message: 'Ce mot existe déjà dans votre vocabulaire', 
-          word: existingWord 
-        };
-      } else {
-        return { status: 'ok', message: 'Ce mot n\'existe pas encore dans votre vocabulaire' };
-      }
-    } catch (error) {
-      console.error('Erreur lors de la vérification de doublon:', error);
-      database.close();
-      throw error;
-    }
-  }
-  
-  // Vérifier les doublons pour une liste de mots pour un utilisateur
-  static async checkDuplicatesBulk(wordsList, userId) {
-    const database = db.getDB();
-    
-    try {
-      const duplicates = [];
-      const newWords = [];
-      
-      for (const word of wordsList) {
-        const existingWord = await db.getRow(
-          database, 
-          'SELECT * FROM words WHERE word = ? AND user_id = ?', 
-          [word, userId]
-        );
-        
-        if (existingWord) {
-          duplicates.push({
-            word: word,
-            existing: existingWord
-          });
-        } else {
-          newWords.push(word);
-        }
-      }
-      
-      database.close();
-      
-      return {
-        duplicates,
-        new_words: newWords
-      };
-    } catch (error) {
-      console.error('Erreur lors de la vérification des doublons en masse:', error);
-      database.close();
-      throw error;
-    }
-  }
-  
-  // Obtenir les statistiques de vocabulaire pour un utilisateur
-  static async getStats(userId) {
-    const database = db.getDB();
-    
-    try {
-      const totalWords = await db.getRow(database, 'SELECT COUNT(*) as count FROM words WHERE user_id = ?', [userId]);
-      
-      const ratingStats = await db.getAllRows(database, `
-        SELECT note, COUNT(*) as count 
-        FROM words 
-        WHERE user_id = ? 
-        GROUP BY note 
-        ORDER BY note DESC
-      `, [userId]);
-      
-      const recentWords = await db.getAllRows(database, `
-        SELECT * FROM words 
-        WHERE user_id = ? 
-        ORDER BY created_at DESC 
-        LIMIT 5
-      `, [userId]);
-      
-      database.close();
-      
-      return {
-        totalWords: totalWords.count,
-        byRating: ratingStats,
-        recentWords: recentWords
-      };
-    } catch (error) {
-      console.error('Erreur lors de la récupération des statistiques:', error);
-      database.close();
-      throw error;
-    }
+
+    return formatResponseText(rawText);
+  } catch (error) {
+    console.error("[ERROR] Erreur lors de la génération de la synthèse:", error);
+    return `<em>Erreur lors de la génération de la synthèse: ${error.message}</em>`;
   }
 }
 
-module.exports = Vocab;
+// Fonction pour générer une image avec DALL-E
+async function generateImage(word) {
+  try {
+    const prompt = `Crée moi une image qui illustre le mieux pour toi le mot ${word} selon les usages courants.`;
+    const apiKey = process.env.OPENAI_API_KEY;
+    
+    if (!apiKey) {
+      throw new Error("Clé API OpenAI manquante dans les variables d'environnement");
+    }
+
+    const response = await axios.post(
+      "https://api.openai.com/v1/images/generations",
+      {
+        model: "dall-e-3",
+        prompt: prompt,
+        n: 1,
+        size: "1024x1024"
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        }
+      }
+    );
+
+    if (response.data && response.data.data && response.data.data.length > 0) {
+      return response.data.data[0].url || "";
+    }
+    
+    return "";
+  } catch (error) {
+    console.error("[ERROR] Erreur lors de la génération de l'image:", error);
+    return "";
+  }
+}
+
+// Fonction pour initialiser la base de données
+async function initVocabDb() {
+  console.log("[INFO] Initialisation de la base de données vocab...");
+  const db = await getDbConnection();
+  
+  try {
+    // Créer la table words si elle n'existe pas déjà
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS words (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        word TEXT,
+        synthese TEXT,
+        youglish TEXT,
+        note INTEGER,
+        tags TEXT,
+        image TEXT,
+        exemples TEXT NOT NULL DEFAULT ''
+      )
+    `);
+    
+    // Créer la table tags si elle n'existe pas déjà
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS tags (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE
+      )
+    `);
+    
+    // Vérifier si la table tags est vide
+    const tagCount = await db.get("SELECT COUNT(*) as count FROM tags");
+    console.log(`[DEBUG] Nombre de tags dans la base de données: ${tagCount.count}`);
+    
+    if (tagCount.count === 0) {
+      console.log("[DEBUG] Ajout des tags par défaut...");
+      const defaultTags = ["médecine", "nourriture", "voyage", "famille", "maison", "commerce", "éducation"];
+      
+      for (const tag of defaultTags) {
+        try {
+          await db.run("INSERT INTO tags (name) VALUES (?)", tag);
+          console.log(`[DEBUG] Tag ajouté: ${tag}`);
+        } catch (error) {
+          if (error.code === 'SQLITE_CONSTRAINT') {
+            console.log(`[DEBUG] Le tag '${tag}' existe déjà`);
+          } else {
+            console.error(`[ERROR] Erreur lors de l'ajout du tag '${tag}':`, error);
+          }
+        }
+      }
+    }
+    
+    // Vérifier si la table words est vide
+    const wordCount = await db.get("SELECT COUNT(*) as count FROM words");
+    console.log(`[DEBUG] Nombre de mots dans la base de données: ${wordCount.count}`);
+    
+    if (wordCount.count === 0) {
+      console.log("[DEBUG] Ajout du mot par défaut 'Hola'...");
+      const defaultWord = "Hola";
+      const defaultSynthese = await generateSynthese(defaultWord);
+      const defaultImage = await generateImage(defaultWord);
+      
+      await db.run(
+        "INSERT INTO words (word, synthese, youglish, note, tags, image, exemples) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [defaultWord, defaultSynthese, "https://youglish.com/pronounce/hola/spanish", 0, "salutation, espagnol", defaultImage, ""]
+      );
+      
+      console.log("[DEBUG] Mot par défaut ajouté avec succès");
+    }
+    
+    // Vérification finale
+    const finalTagCount = await db.get("SELECT COUNT(*) as count FROM tags");
+    const finalWordCount = await db.get("SELECT COUNT(*) as count FROM words");
+    console.log(`[DEBUG] Vérification après initialisation: ${finalTagCount.count} tags et ${finalWordCount.count} mots`);
+    
+    if (finalTagCount.count > 0) {
+      const tags = await db.all("SELECT name FROM tags");
+      console.log(`[DEBUG] Tags dans la base: ${tags.map(t => t.name).join(', ')}`);
+    }
+    
+  } catch (error) {
+    console.error("[ERROR] Erreur lors de l'initialisation de la base de données:", error);
+  } finally {
+    await db.close();
+  }
+}
+
+// Fonctions exportées pour les routes
+const Vocab = {
+  // Récupération des mots
+  async getAllWords(userId, page, limit, filters = {}) {
+    const db = await getDbConnection();
+    const offset = (page - 1) * limit;
+    
+    let query = "SELECT * FROM words";
+    const params = [];
+    const conditions = [];
+    
+    if (filters.tag) {
+      conditions.push("lower(tags) LIKE ?");
+      params.push(`%${filters.tag.toLowerCase()}%`);
+    }
+    
+    if (filters.rating) {
+      conditions.push("note = ?");
+      params.push(filters.rating);
+    }
+    
+    if (conditions.length > 0) {
+      query += " WHERE " + conditions.join(" AND ");
+    }
+    
+    // Compter le total pour la pagination
+    const countResult = await db.get(`SELECT COUNT(*) as count FROM (${query})`, params);
+    const totalCount = countResult.count;
+    
+    // Requête principale avec limite et offset pour pagination
+    query += " ORDER BY lower(word) LIMIT ? OFFSET ?";
+    params.push(limit, offset);
+    
+    const words = await db.all(query, params);
+    await db.close();
+    
+    return {
+      words,
+      pagination: {
+        current_page: page,
+        items_per_page: limit,
+        total_items: totalCount,
+        total_pages: Math.ceil(totalCount / limit)
+      }
+    };
+  },
+  
+  // Récupération des tags
+  async getAllTags(userId) {
+    const db = await getDbConnection();
+    
+    // Récupérer tous les tags de la table tags
+    let allTags = [];
+    try {
+      const rows = await db.all("SELECT name FROM tags ORDER BY name");
+      allTags = rows.map(row => row.name);
+      
+      // Si aucun tag n'est trouvé, afficher un avertissement
+      if (allTags.length === 0) {
+        console.log("[DEBUG] ATTENTION: Aucun tag trouvé dans la table tags");
+      }
+    } catch (error) {
+      console.error(`[DEBUG] ERREUR lors de la récupération des tags: ${error}`);
+    }
+    
+    // Récupérer également les tags des mots (pour être sûr)
+    const tagsFromWords = new Set();
+    try {
+      const wordsWithTags = await db.all("SELECT DISTINCT tags FROM words WHERE tags IS NOT NULL AND tags != ''");
+      
+      for (const word of wordsWithTags) {
+        if (word.tags) {
+          const tags = word.tags.split(',').map(t => t.trim()).filter(t => t);
+          tags.forEach(tag => tagsFromWords.add(tag));
+        }
+      }
+      
+      console.log(`[DEBUG] Tags extraits des mots: ${Array.from(tagsFromWords).join(', ')}`);
+      
+      // Ajouter les tags des mots qui ne sont pas déjà dans allTags
+      for (const tag of tagsFromWords) {
+        if (!allTags.includes(tag)) {
+          allTags.push(tag);
+          console.log(`[DEBUG] Ajout du tag '${tag}' depuis les mots`);
+        }
+      }
+    } catch (error) {
+      console.error(`[DEBUG] ERREUR lors de l'extraction des tags des mots: ${error}`);
+    }
+    
+    // Trier les tags par ordre alphabétique
+    allTags.sort();
+    
+    await db.close();
+    return allTags;
+  },
+  
+  // Ajout d'un nouveau mot
+  async addWord(userId, wordData) {
+    const { word, synthese, youglish, tags, note = 0, image = "", force_add = false } = wordData;
+    
+    if (!word) {
+      return { status: "error", message: "Aucun mot fourni" };
+    }
+    
+    // Vérifier si le mot existe déjà
+    if (!force_add) {
+      const exists = await wordExists(word);
+      if (exists) {
+        return { status: "error", message: "Ce mot existe déjà dans la base de données" };
+      }
+    }
+    
+    // Générer la synthèse si nécessaire
+    let finalSynthese = synthese;
+    if (!synthese && !wordData.disable_auto_synthese) {
+      try {
+        finalSynthese = await generateSynthese(word);
+        console.log(`[DEBUG] Synthèse générée : ${finalSynthese.substring(0, 100)}...`);
+      } catch (error) {
+        console.error(`[DEBUG] generate_synthese error: ${error}`);
+        finalSynthese = `<em>Erreur lors de la génération de la synthèse: ${error.message}</em>`;
+      }
+    }
+    
+    // Générer l'image si nécessaire
+    let finalImage = image;
+    if (!image && !wordData.disable_auto_image) {
+      try {
+        finalImage = await generateImage(word);
+        console.log(`[DEBUG] Image générée : ${finalImage.substring(0, 50)}...`);
+      } catch (error) {
+        console.error(`[DEBUG] generate_image error: ${error}`);
+        finalImage = "";
+      }
+    }
+    
+    // Si youglish n'est pas fourni, générer l'URL
+    const finalYouglish = youglish || `https://youglish.com/pronounce/${encodeURIComponent(word)}/spanish`;
+    
+    try {
+      const db = await getDbConnection();
+      
+      // Insérer le nouveau mot
+      const result = await db.run(
+        "INSERT INTO words (word, synthese, youglish, note, tags, image, exemples) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [word, finalSynthese, finalYouglish, note, tags, finalImage, ""]
+      );
+      
+      await db.close();
+      
+      return { 
+        status: "success", 
+        message: "Mot ajouté avec succès", 
+        wordId: result.lastID,
+        synthese: finalSynthese,
+        image: finalImage
+      };
+    } catch (error) {
+      console.error(`[DEBUG] DB insert error: ${error}`);
+      return { status: "error", message: error.message };
+    }
+  },
+  
+  // Vérification de doublon
+  async checkDuplicate(word, userId) {
+    const db = await getDbConnection();
+    
+    try {
+      const existing = await db.get(
+        "SELECT id, word, synthese, tags, image FROM words WHERE lower(word) = ?", 
+        [word.toLowerCase()]
+      );
+      
+      await db.close();
+      
+      if (existing) {
+        return {
+          status: "duplicate",
+          word: existing
+        };
+      } else {
+        return { status: "ok" };
+      }
+    } catch (error) {
+      await db.close();
+      console.error(`[DEBUG] Error in checkDuplicate: ${error}`);
+      return { status: "error", message: error.message };
+    }
+  },
+  
+  // Vérification de doublons en masse
+  async checkDuplicatesBulk(words, userId) {
+    const db = await getDbConnection();
+    const result = {
+      new_words: [],
+      duplicates: []
+    };
+    
+    try {
+      for (const word of words) {
+        const trimmedWord = word.trim();
+        if (!trimmedWord) continue;
+        
+        const existing = await db.get(
+          "SELECT id, word, synthese, tags, image FROM words WHERE lower(word) = ?",
+          [trimmedWord.toLowerCase()]
+        );
+        
+        if (existing) {
+          result.duplicates.push({
+            word: trimmedWord,
+            existing
+          });
+        } else {
+          result.new_words.push(trimmedWord);
+        }
+      }
+    } catch (error) {
+      console.error(`[DEBUG] Error in checkDuplicatesBulk: ${error}`);
+    } finally {
+      await db.close();
+    }
+    
+    return result;
+  },
+  
+  // Mise à jour d'un mot
+  async updateWord(id, userId, field, value) {
+    if (!['word', 'synthese', 'youglish', 'tags', 'image', 'note'].includes(field)) {
+      return { status: "error", message: "Champ non autorisé" };
+    }
+    
+    try {
+      const db = await getDbConnection();
+      await db.run(`UPDATE words SET ${field} = ? WHERE id = ?`, [value, id]);
+      await db.close();
+      
+      return { status: "success" };
+    } catch (error) {
+      console.error(`[DEBUG] Error in updateWord: ${error}`);
+      return { status: "error", message: error.message };
+    }
+  },
+  
+  // Suppression d'un mot
+  async deleteWord(id, userId) {
+    try {
+      const db = await getDbConnection();
+      await db.run("DELETE FROM words WHERE id = ?", [id]);
+      await db.close();
+      
+      return { status: "success" };
+    } catch (error) {
+      console.error(`[DEBUG] Error in deleteWord: ${error}`);
+      return { status: "error", message: error.message };
+    }
+  },
+  
+  // Récupération d'un mot par ID
+  async getWordById(id, userId) {
+    try {
+      const db = await getDbConnection();
+      const word = await db.get("SELECT * FROM words WHERE id = ?", [id]);
+      await db.close();
+      
+      return word;
+    } catch (error) {
+      console.error(`[DEBUG] Error in getWordById: ${error}`);
+      return null;
+    }
+  },
+  
+  // Récupération des statistiques
+  async getStats(userId) {
+    try {
+      const db = await getDbConnection();
+      
+      const totalWords = await db.get("SELECT COUNT(*) as count FROM words");
+      const withImage = await db.get("SELECT COUNT(*) as count FROM words WHERE image IS NOT NULL AND image != ''");
+      const withTags = await db.get("SELECT COUNT(*) as count FROM words WHERE tags IS NOT NULL AND tags != ''");
+      
+      const ratings = [];
+      for (let i = 0; i <= 5; i++) {
+        const ratingCount = await db.get("SELECT COUNT(*) as count FROM words WHERE note = ?", [i]);
+        ratings.push({ rating: i, count: ratingCount.count });
+      }
+      
+      await db.close();
+      
+      return {
+        total: totalWords.count,
+        with_image: withImage.count,
+        with_tags: withTags.count,
+        ratings
+      };
+    } catch (error) {
+      console.error(`[DEBUG] Error in getStats: ${error}`);
+      return {
+        total: 0,
+        with_image: 0,
+        with_tags: 0,
+        ratings: []
+      };
+    }
+  }
+};
+
+module.exports = { 
+  Vocab, 
+  initVocabDb, 
+  generateSynthese, 
+  generateImage 
+};
