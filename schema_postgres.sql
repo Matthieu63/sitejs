@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS tags (
 CREATE TABLE IF NOT EXISTS dialogues_files (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  titre TEXT,
   filename VARCHAR(255) NOT NULL,
   upload_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   source_type VARCHAR(50),  -- 'pdf', 'youtube', etc.
