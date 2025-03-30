@@ -3,7 +3,9 @@ const { connect } = require('../config/db');
 const axios = require('axios');
 const { ObjectId } = require('mongodb');
 
-// Fonction pour générer la synthèse avec Claude (vous pouvez conserver votre logique existante)
+/**
+ * Génère la synthèse pour un mot avec l'API Claude.
+ */
 async function generateSynthese(word) {
   try {
     const prompt = (
@@ -44,7 +46,6 @@ async function generateSynthese(word) {
     if (!rawText) {
       return "<em>Pas de synthèse générée par Claude.</em>";
     }
-
     return formatResponseText(rawText);
   } catch (error) {
     console.error("[ERROR] Erreur lors de la génération de la synthèse:", error);
@@ -52,7 +53,9 @@ async function generateSynthese(word) {
   }
 }
 
-// Fonction pour formater le texte (idem à votre version)
+/**
+ * Formate le texte en paragraphes HTML.
+ */
 function formatResponseText(text) {
   const paragraphs = text.split("\n\n");
   const formattedParagraphs = paragraphs
@@ -64,7 +67,9 @@ function formatResponseText(text) {
   return formattedParagraphs.join("\n");
 }
 
-// Fonction pour générer une image avec DALL-E
+/**
+ * Génère une image via l'API OpenAI (DALL-E).
+ */
 async function generateImage(word) {
   try {
     const prompt = `Crée moi une image qui illustre le mieux pour toi le mot ${word} selon les usages courants.`;
@@ -100,7 +105,9 @@ async function generateImage(word) {
 }
 
 const Vocab = {
-  // Récupération des mots d'un utilisateur avec pagination et filtres
+  /**
+   * Récupère les mots d'un utilisateur avec pagination et filtres.
+   */
   async getAllWords(userId, page, limit, filters = {}) {
     const db = await connect();
     const collection = db.collection('words');
@@ -131,7 +138,9 @@ const Vocab = {
     };
   },
 
-  // Récupération de tous les tags de l'utilisateur (extrait des documents)
+  /**
+   * Extrait tous les tags présents dans les mots d'un utilisateur.
+   */
   async getAllTags(userId) {
     const db = await connect();
     const collection = db.collection('words');
@@ -147,7 +156,9 @@ const Vocab = {
     return Array.from(allTagsSet).sort();
   },
 
-  // Ajout d'un nouveau mot pour un utilisateur
+  /**
+   * Ajoute un nouveau mot pour un utilisateur.
+   */
   async addWord(userId, wordData) {
     const collection = (await connect()).collection('words');
 
@@ -193,15 +204,17 @@ const Vocab = {
     };
 
     const result = await collection.insertOne(doc);
-    return { 
-      status: "success", 
-      message: "Mot ajouté avec succès", 
-      wordId: result.insertedId, 
-      ...doc 
+    return {
+      status: "success",
+      message: "Mot ajouté avec succès",
+      wordId: result.insertedId,
+      ...doc
     };
   },
 
-  // Vérification de doublon pour un mot
+  /**
+   * Vérifie si un mot existe déjà pour un utilisateur.
+   */
   async checkDuplicate(word, userId) {
     const collection = (await connect()).collection('words');
     const duplicate = await collection.findOne({
@@ -211,7 +224,9 @@ const Vocab = {
     return duplicate ? { status: "duplicate", word: duplicate } : { status: "ok" };
   },
 
-  // Mise à jour d'un mot (pour un champ autorisé)
+  /**
+   * Met à jour un champ spécifique d'un mot.
+   */
   async updateWord(id, userId, field, value) {
     if (!['word', 'synthese', 'youglish', 'tags', 'image', 'note'].includes(field)) {
       return { status: "error", message: "Champ non autorisé" };
@@ -222,23 +237,33 @@ const Vocab = {
       { _id: new ObjectId(id), user: userId },
       update
     );
-    return result.modifiedCount > 0 ? { status: "success" } : { status: "error", message: "Aucune modification effectuée" };
+    return result.modifiedCount > 0
+      ? { status: "success" }
+      : { status: "error", message: "Aucune modification effectuée" };
   },
 
-  // Suppression d'un mot
+  /**
+   * Supprime un mot.
+   */
   async deleteWord(id, userId) {
     const collection = (await connect()).collection('words');
     const result = await collection.deleteOne({ _id: new ObjectId(id), user: userId });
-    return result.deletedCount > 0 ? { status: "success" } : { status: "error", message: "Erreur lors de la suppression" };
+    return result.deletedCount > 0
+      ? { status: "success" }
+      : { status: "error", message: "Erreur lors de la suppression" };
   },
 
-  // Récupération d'un mot par son ID
+  /**
+   * Récupère un mot par son ID.
+   */
   async getWordById(id, userId) {
     const collection = (await connect()).collection('words');
     return await collection.findOne({ _id: new ObjectId(id), user: userId });
   },
 
-  // Récupération des statistiques
+  /**
+   * Récupère des statistiques sur les mots d'un utilisateur.
+   */
   async getStats(userId) {
     const collection = (await connect()).collection('words');
     const total = await collection.countDocuments({ user: userId });

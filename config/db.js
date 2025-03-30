@@ -6,15 +6,13 @@ if (!uri) {
   throw new Error("La variable d'environnement MONGODB_URI n'est pas définie.");
 }
 
-const client = new MongoClient(uri);
-
-// On utilise une variable pour stocker la connexion déjà établie
+const client = new MongoClient(uri, { useUnifiedTopology: true });
 let dbInstance = null;
 
 async function connect() {
-  if (dbInstance) return dbInstance; // Si déjà connecté, retourner l'instance
+  if (dbInstance) return dbInstance;
   await client.connect();
-  dbInstance = client.db('polyglot'); // Remplacez 'polyglot' par le nom souhaité pour votre base de données
+  dbInstance = client.db('polyglot'); // Remplacez 'polyglot' par le nom de votre base de données
   console.log("Connecté à MongoDB");
   return dbInstance;
 }
