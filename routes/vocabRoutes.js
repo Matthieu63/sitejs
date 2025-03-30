@@ -1,7 +1,8 @@
 // routes/vocabRoutes.js
+// routes/vocabRoutes.js
 const express = require('express');
 const router = express.Router();
-const { Vocab } = require('../models/Vocab');
+const { VocabPg: Vocab } = require('../models/VocabPg');
 const UserProgress = require('../models/UserProgress');
 const multer = require('multer');
 const path = require('path');

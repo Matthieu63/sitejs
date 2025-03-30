@@ -13,9 +13,17 @@ dotenv.config();
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname);
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 
-// Initialisation de la base de données
-const db = require('./config/database');
-db.initDatabase();
+// Initialisation de la base de données SQLite (commenté car on utilise PostgreSQL)
+// const db = require('./config/database');
+// db.initDatabase();
+
+// Initialisation de la base de données PostgreSQL
+const pg = require('./config/postgres');
+
+// Tester la connexion PostgreSQL
+pg.pool.connect()
+  .then(() => console.log('Application connectée à PostgreSQL'))
+  .catch(err => console.error('Erreur de connexion à PostgreSQL:', err));
 
 // Importer les routes
 const dbInit = require('./database/dbInit');
