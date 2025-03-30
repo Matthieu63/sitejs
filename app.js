@@ -160,7 +160,7 @@ app.use('/admin', adminRoutes);
 app.use('/espagnol', vocabRoutes);
 app.use('/espagnol/dialogues', dialoguesRoutes);
 app.use('/espagnol/stories', storiesRoutes);
-app.use("/espagnol/api/polly", require("./routes/pollyRoutes"));
+app.use("/espagnol/api", require("./routes/pollyRoutes"));
 app.use('/espagnol/flashcard', flashcardRoutes);
 
 
