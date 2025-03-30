@@ -36,6 +36,8 @@ router.get("/view/:id", async (req, res) => {
 // Upload PDF & générer dialogues
 router.post("/", upload.single("pdfFile"), async (req, res) => {
   const filePath = req.file.path;
+  const originalFilename = req.file.originalname;
+  const dialogueId = await DialoguePg.processAndGenerateDialoguesFromPDF(filePath, originalFilename, userId);
   const originalFilename = path.basename(req.file.originalname, path.extname(req.file.originalname));
 
   try {
