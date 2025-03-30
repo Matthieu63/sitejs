@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const methodOverride = require('method-override');
 const dotenv = require('dotenv');
+const flash = require('connect-flash'); // Importer ici, une seule fois
 
 // Chargement des variables d'environnement
 dotenv.config();
@@ -12,10 +13,6 @@ dotenv.config();
 // Définir le chemin du fichier users.json
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname);
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
-
-// Initialisation de la base de données SQLite (commenté car on utilise PostgreSQL)
-// const db = require('./config/database');
-// db.initDatabase();
 
 // Initialisation de la base de données PostgreSQL
 const pg = require('./config/postgres');
@@ -43,25 +40,13 @@ app.set('views', path.join(__dirname, 'views'));
 
 app.set('trust proxy', 1);
 
-
 // Middleware
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(methodOverride('_method'));
 app.use(express.static(path.join(__dirname, 'public')));
-const flash = require('connect-flash');
 
-// Ajoutez ceci après la configuration de session
-app.use(flash());
-
-// Exposer flash à EJS
-app.use((req, res, next) => {
-  res.locals.flash = req.flash();
-  res.locals.session = req.session;
-  next();
-});
-
-// Session
+// Configuration de session - DOIT ÊTRE AVANT flash
 app.use(session({
   secret: process.env.SESSION_SECRET || 'changez_cette_valeur_en_prod',
   resave: false,
@@ -69,9 +54,13 @@ app.use(session({
   cookie: { secure: process.env.NODE_ENV === 'production' }
 }));
 
-// Exposer session à EJS
+// Ajouter connect-flash APRÈS session
+app.use(flash());
+
+// Exposer session et flash à EJS - UN SEUL MIDDLEWARE
 app.use((req, res, next) => {
   res.locals.session = req.session;
+  res.locals.flash = req.flash();
   next();
 });
 
